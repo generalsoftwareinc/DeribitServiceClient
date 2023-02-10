@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ServiceClientLibrary\ServiceClient.csproj" />
+    <ProjectReference Include="..\ServiceClient\ServiceClient.csproj" />
   </ItemGroup>
 
   <ItemGroup>

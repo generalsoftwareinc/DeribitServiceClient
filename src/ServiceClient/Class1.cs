@@ -1,4 +1,4 @@
-﻿namespace ServiceClientLibrary
+﻿namespace ServiceClient
 {
     public class Class1
     {

@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleApp", "DeribitSolution\ConsoleApp.csproj", "{032DB26F-3973-4EE9-8433-C20E2872E9D1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleApp", "src\DeribitSolution\ConsoleApp.csproj", "{032DB26F-3973-4EE9-8433-C20E2872E9D1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceClient", "ServiceClientLibrary\ServiceClient.csproj", "{CD9EBB22-06F5-468C-9625-0F45BCF17B84}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceClient", "src\ServiceClient\ServiceClient.csproj", "{CD9EBB22-06F5-468C-9625-0F45BCF17B84}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0AD42559-C188-4075-B29C-2B8868E5CC2B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +26,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{032DB26F-3973-4EE9-8433-C20E2872E9D1} = {0AD42559-C188-4075-B29C-2B8868E5CC2B}
+		{CD9EBB22-06F5-468C-9625-0F45BCF17B84} = {0AD42559-C188-4075-B29C-2B8868E5CC2B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4724DB56-3BE9-4C7A-B6BD-A31006FF2B67}
