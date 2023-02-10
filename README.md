@@ -6,11 +6,11 @@
 
 ### Team rituals:
 
-As a team, we have set up a series of tasks that we carry over every day in order to meet the goals agreed on each iteration. In our case, the iterations may last from 1 to 3 weeks depending on the project's complexity. For this case, we decided to have just two iterations of one week each. 
+As a team, we have set up a series of tasks that we carry over every day in order to meet the goals agreed on each iteration. In our case, the iterations may last from 1 to 3 weeks depending on the project's complexity. For this case, we have decided to have just two iterations of one week each. 
 
 &nbsp;
 
-Each iteration starts with a Planning meeting: The objective of this meeting is to choose the functionalities to implement and clarify the doubts that the project team may have. Likewise, it serves to align the client's expectations with the project team’s understanding of the project. 
+Each iteration starts with a Planning meeting: The objective of this meeting is to choose the functionalities to implement and clear doubts the doubts that the project team may have. Likewise, it helps to align the client's expectations with the team’s understanding of the project. 
 
 &nbsp;
 
@@ -44,7 +44,7 @@ Based on the recommendations provided by Scrum, once the project features were b
 
 &nbsp;
 
-Besides that, the team gave each of the effort tags a corresponding amount of hours. 
+Besides, the team gave each of the effort tags a corresponding amount of hours. 
 
 &nbsp;
 
