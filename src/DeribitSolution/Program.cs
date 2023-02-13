@@ -1,4 +1,5 @@
 ﻿using ConsoleApp.TestClass;
+using DeribitServiceClient.ServiceClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -28,6 +29,7 @@ serviceCollection.AddSingleton<IConfiguration>(configuration);
 logger.LogInformation("Injected configuration");
 Console.WriteLine();
 serviceCollection.AddSingleton<TestClass>();
+serviceCollection.AddSingleton<ISocketManager, SocketManager>();
 var serviceProvider = serviceCollection.BuildServiceProvider();
 logger.LogInformation("Created Service provider");
 Console.WriteLine();
