@@ -6,6 +6,13 @@ namespace ConsoleApp.Commands;
 
 internal class AsyncSpectreCommand : AsyncCommand<AsyncSpectreCommand.Settings>
 {
+    private readonly Pipeline _pipeline;
+
+    public AsyncSpectreCommand(Pipeline pipeline)
+    {
+        _pipeline= pipeline;
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         var table = new Table().Centered();
