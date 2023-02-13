@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using ServiceClient.Abstractions;
+using ServiceClient.Implements;
 
 namespace ServiceClient
 {
@@ -6,7 +8,7 @@ namespace ServiceClient
     {
         public static void AddServiceClient(this IServiceCollection services)
         {
-            // TODO add services here
+            services.AddTransient<IServiceClient, MockServiceClient>();
         }
     }
 }
