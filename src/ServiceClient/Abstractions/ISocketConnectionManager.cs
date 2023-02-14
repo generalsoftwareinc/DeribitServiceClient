@@ -1,24 +1,23 @@
 ﻿using ServiceClient.DTOs;
 using System.Net.WebSockets;
-using System.Threading.Channels;
 
 namespace ServiceClient.Abstractions;
 
 public interface IDeribitSocketConnection
 {
-    ClientWebSocket? ClientWebSocket { get; }
-    Task SocketConnectAsync(Credential credential);
+    ClientWebSocket ClientWebSocket { get; }
+    Task SocketConnectAsync(CancellationToken cancellationToken);
 
-    Task SocketDisconnectAsync();
+    Task SocketDisconnectAsync(CancellationToken cancellationToken);
 }
 public interface IDeribitChannelSubscription
 { 
-    Task BookInstrumentIntervalSusbcribe(ClientWebSocket ClientWebSocket, Action<BookDto> onBookUpdate );
-    Task TickerInstrumentIntervalSusbcribe(ClientWebSocket ClientWebSocket,  Action<TickerDto> onTickerUpdate);
+    Task BookInstrumentIntervalSusbcribe(ClientWebSocket ClientWebSocket, Action<Book> onBookUpdate );
+    Task TickerInstrumentIntervalSusbcribe(ClientWebSocket ClientWebSocket,  Action<Ticker> onTickerUpdate);
 }
-public interface IChannelDataTransfer
+public interface ISocketDataTransfer
 {
-    Task SendAsync(Channel channel);
+    Task SendAsync(ClientWebSocket socket, string request, CancellationToken cancellationToken);
 
-    Task ReceiveAsync(Channel channel);
+    Task<string> ReceiveAsync(ClientWebSocket socket, CancellationToken cancellationToken);
 }
