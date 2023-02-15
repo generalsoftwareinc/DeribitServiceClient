@@ -21,7 +21,7 @@ internal class SpectreOutputPipeline : Pipeline
         this.liveTable = liveTable;
     }
 
-    public override Task RunAsync(CancellationToken? cancellationToken = null)
+    public override Task RunAsync(CancellationToken cancellationToken)
     {
         return liveTable.StartAsync( (ctx) => {
             lastEvents.CollectionChanged += (s, e) =>
