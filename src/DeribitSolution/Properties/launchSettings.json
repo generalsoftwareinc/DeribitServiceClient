@@ -1,12 +1,8 @@
 {
   "profiles": {
-    "ConsoleApp(Spectre)": {
+    "Console App": {
       "commandName": "Project",
-      "commandLineArgs": "output spectre -s 20"
-    },
-    "ConsoleApp(Log)": {
-      "commandName": "Project",
-      "commandLineArgs": "output log"
+      "commandLineArgs": ""
     }
   }
 }

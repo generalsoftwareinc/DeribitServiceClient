@@ -1,4 +1,5 @@
-﻿using ServiceClient.Abstractions;
+﻿using ServiceClient;
+using ServiceClient.Abstractions;
 
 namespace ConsoleApp.Pipelines;
 
@@ -24,7 +25,7 @@ internal abstract class Pipeline
         await client.DisconnectAsync(cancellationToken);
     }
 
-    protected abstract void Client_OnTickerReceived(object? sender, EventArgs e);
+    protected abstract void Client_OnTickerReceived(object? sender, TickerReceivedEventArgs e);
 
     protected abstract void WritePipelineStep(string stepInfo);
 

@@ -1,7 +1,8 @@
 ﻿using ConsoleApp.DTOs;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using ServiceClient;
 using ServiceClient.Abstractions;
+using ServiceClient.DTOs;
 using Spectre.Console;
 using System.Collections.ObjectModel;
 
@@ -10,7 +11,7 @@ namespace ConsoleApp.Pipelines;
 internal class SpectreOutputPipeline : Pipeline
 {
     private readonly OutputOptions outputOptions;
-    private readonly ObservableCollection<string> lastEvents = new();
+    private readonly ObservableCollection<Ticker> lastEvents = new();
     private readonly Table table;
     private readonly LiveDisplay liveTable;
 
@@ -35,31 +36,47 @@ internal class SpectreOutputPipeline : Pipeline
 
     private void AddTableHeaders()
     {
-        table.AddColumn("Number");
-        table.AddColumn("Name");
-        table.AddColumn("Last Name");
+        table.AddColumn("Instrument Name");
+        table.AddColumn("State");
+        table.AddColumn("Min Price");
+        table.AddColumn("Max Price");
+        table.AddColumn("Best Bid Price");
+        table.AddColumn("Best Ask Price");
+        table.AddColumn("Book Asks Changed");
+        table.AddColumn("Book Bids Changed");
     }
 
     private void UpdateTableItems()
     {
         table.Rows.Clear();
-
-        for(var i = 0; i < lastEvents.Count; i++)
+        
+        var converter = new Func<(string, double, int), string>((x) => $"[bold]Change:[/] {x.Item1}, [bold red]Price:[/] {x.Item2}, [bold]Amount:[/] {x.Item3}");
+        for (var i = 0; i < lastEvents.Count; i++)
         {
+            var ev = lastEvents[i];
+            var asksAsString = string.Join("; ", ev.LastBook.Asks.Select(converter));
+            var bidsAsString = string.Join("; ", ev.LastBook.Bids.Select(converter));
+           
             table.AddRow(
-                new Markup($"[bold]{i}[/]"),
-                new Markup($"[green]{lastEvents[i]}[/]")
+                new Markup($"[bold green]{ev.InstrumentName}[/]"),
+                new Markup($"[bold red]{ev.State}[/]"),
+                new Markup($"{ev.MinPrice}"),
+                new Markup($"{ev.MaxPrice}"),
+                new Markup($"{ev.BestBidPrice}"),
+                new Markup($"{ev.BestAskPrice}"),
+                new Markup(asksAsString),
+                new Markup(bidsAsString)
                 );
         }
     }
 
-    protected override void Client_OnTickerReceived(object? sender, EventArgs e)
+    protected override void Client_OnTickerReceived(object? sender, TickerReceivedEventArgs e)
     {
         if (lastEvents.Count >= outputOptions.ConsoleAmountOfEvents)
         {
             lastEvents.RemoveAt(0);
         }
-        lastEvents.Add($"New [bold red]event[/] {DateTime.Now.ToLocalTime()}");
+        lastEvents.Add(e.Ticker);
     }
 
     protected override void WritePipelineStep(string stepInfo)
