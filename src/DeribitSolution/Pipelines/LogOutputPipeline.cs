@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using ServiceClient;
 using ServiceClient.Abstractions;
 
 namespace ConsoleApp.Pipelines;
@@ -11,9 +12,9 @@ internal class LogOutputPipeline : Pipeline
         this.logger = logger;
     }
 
-    protected override void Client_OnTickerReceived(object? sender, EventArgs e)
+    protected override void Client_OnTickerReceived(object? sender, TickerReceivedEventArgs e)
     {
-        logger.LogInformation("Capture a new update {@EventArgs}", e);
+        logger.LogInformation("Ticker: {Ticker}", e.Ticker.ToString());
     }
 
     protected override void WritePipelineStep(string stepInfo)

@@ -6,5 +6,5 @@ public interface IServiceClient
     Task<bool> InitializeAsync(CancellationToken cancellationToken);
     Task<bool> DisconnectAsync(CancellationToken cancellationToken);
 
-    event EventHandler OnTickerReceived;
+    event TickerReceivedEventHandler OnTickerReceived;
 }

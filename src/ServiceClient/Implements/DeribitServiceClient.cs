@@ -13,7 +13,7 @@ namespace ServiceClient.Implements
             this.socketDataTransfer = socketDataTransfer;
         }
 
-        public event EventHandler? OnTickerReceived;
+        public event TickerReceivedEventHandler? OnTickerReceived;
 
         public async Task<bool> DisconnectAsync(CancellationToken cancellationToken)
         {
