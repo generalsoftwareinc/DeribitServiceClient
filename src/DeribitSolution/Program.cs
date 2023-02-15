@@ -1,13 +1,13 @@
-﻿using ConsoleApp;
-using ConsoleApp.Commands;
-using ConsoleApp.Infrastructure;
+﻿using ConsoleApp.DTOs;
+using ConsoleApp.Pipelines;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ServiceClient;
 using ServiceClient.DTOs;
-using Spectre.Console.Cli;
+using Spectre.Console;
 
 #region Configuration
 // Build configurations of appsettings.json and environment
@@ -28,25 +28,39 @@ var host = Host.CreateDefaultBuilder()
     })
     .ConfigureServices(services => {
         services.AddSingleton<IConfiguration>(config);
+        services.AddOptions<OutputOptions>()
+                .Bind(config.GetSection(nameof(OutputOptions)));
         services.AddLogging();
         services.AddServiceClient(config);
-        services.AddTransient<Pipeline>();
-        services.AddTransient<AsyncLogCommand>();
-        services.AddTransient<AsyncSpectreCommand>();
-        services.AddSingleton<ITypeRegistrar>(new TypeRegistrar(services));
+        services.AddSingleton(_ => new Table().Centered());
+        services.AddTransient(sp => AnsiConsole.Live(sp.GetRequiredService<Table>()));
+        services.AddTransient<SpectreOutputPipeline>();
+        services.AddTransient<LogOutputPipeline>();
+        services.AddTransient<Pipeline>((sp) => {
+            var output = sp.GetRequiredService<IOptions<OutputOptions>>();
+            return output.Value.Type switch
+            {
+                OutputOptions.OutputTypes.Console => sp.GetRequiredService<SpectreOutputPipeline>(),
+                OutputOptions.OutputTypes.Logging => sp.GetRequiredService<LogOutputPipeline>(),
+                _ => throw new NotSupportedException()
+            };
+        });
     })
     .Build();
 #endregion
 
 // Create a command app of Spectre Console
-var app = new CommandApp(host.Services.GetRequiredService<ITypeRegistrar>());
+var cancellationToken = new CancellationTokenSource();
 
-app.Configure(config => {
-    config.AddBranch("output", c =>
-    {
-        c.AddCommand<AsyncLogCommand>("log");
-        c.AddCommand<AsyncSpectreCommand>("spectre");
-    });
-});
+var pipeline = host.Services.GetRequiredService<Pipeline>();
 
-await app.RunAsync(args);
+void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+{
+    cancellationToken.Cancel();
+    Console.CancelKeyPress -= Console_CancelKeyPress;
+    e.Cancel = true;
+}
+
+Console.CancelKeyPress += Console_CancelKeyPress;
+
+await pipeline.RunAsync(cancellationToken.Token);
