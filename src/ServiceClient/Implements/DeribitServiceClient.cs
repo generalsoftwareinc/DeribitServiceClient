@@ -1,4 +1,6 @@
-﻿using ServiceClient.Abstractions;
+﻿using Microsoft.Extensions.Options;
+using ServiceClient.Abstractions;
+using ServiceClient.DTOs;
 
 namespace ServiceClient.Implements
 {
@@ -6,11 +8,16 @@ namespace ServiceClient.Implements
     {
         private readonly IDeribitSocketConnection socketConnection;
         private readonly ISocketDataTransfer socketDataTransfer;
+        private readonly DeribitOptions deribitOptions;
 
-        public DeribitServiceClient(IDeribitSocketConnection socketConnection, ISocketDataTransfer socketDataTransfer)
+        private const int TEST_AVAILABLE = 100;
+        private const int AUTHENTICATE = 101;
+
+        public DeribitServiceClient(IDeribitSocketConnection socketConnection, ISocketDataTransfer socketDataTransfer, IOptions<DeribitOptions> options)
         {
             this.socketConnection = socketConnection;
             this.socketDataTransfer = socketDataTransfer;
+            this.deribitOptions= options.Value;
         }
 
         public event TickerReceivedEventHandler? OnTickerReceived;
@@ -54,7 +61,7 @@ namespace ServiceClient.Implements
                 await InitializeAsync(cancellationToken);
                 var request = new Request
                 {
-                    Id = 100,
+                    Id = TEST_AVAILABLE,
                     Method = "public/test"
                 };
                 var socket = socketConnection.ClientWebSocket;
@@ -63,7 +70,35 @@ namespace ServiceClient.Implements
                 var result = await socketDataTransfer.ReceiveAsync(socket, cancellationToken);
                 return result != null;
             }
-            catch (Exception)
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> AuthenticateAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var request = new Request
+                {
+                    Id = AUTHENTICATE,
+                    Method = "public/auth",
+                    Parameters = new
+                    {
+                        grant_type = "client_credentials",
+                        client_id = deribitOptions.ApiKey,
+                        client_secret = deribitOptions.ApiSecret
+                    }
+                };
+                var socket = socketConnection.ClientWebSocket;
+                var message = RequestBuilder.BuildRequest(request);
+                await socketDataTransfer.SendAsync(socket, message, cancellationToken);
+                var result = await socketDataTransfer.ReceiveAsync(socket, cancellationToken);
+                //TODO: Deserialize the cliente credentials
+                return (result != null);
+            }
+            catch
             {
                 return false;
             }
