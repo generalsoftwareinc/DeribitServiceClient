@@ -28,16 +28,8 @@ var host = Host.CreateDefaultBuilder()
     })
     .ConfigureServices(services => {
         services.AddSingleton<IConfiguration>(config);
-        services.AddOptions<DeribitOptions>()
-                .Bind(config.GetSection(nameof(DeribitOptions)))
-                .Validate(config =>
-                {
-                    if (string.IsNullOrEmpty(config.ApiKey) || string.IsNullOrEmpty(config.ApiSecret))
-                        return false;
-                    return true;
-                });
         services.AddLogging();
-        services.AddServiceClient();
+        services.AddServiceClient(config);
         services.AddTransient<Pipeline>();
         services.AddTransient<AsyncLogCommand>();
         services.AddTransient<AsyncSpectreCommand>();
