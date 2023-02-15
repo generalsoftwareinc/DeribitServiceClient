@@ -12,8 +12,8 @@ public interface IDeribitSocketConnection
 }
 public interface IDeribitChannelSubscription
 { 
-    Task BookInstrumentIntervalSusbcribe(ClientWebSocket ClientWebSocket, Action<Book> onBookUpdate );
-    Task TickerInstrumentIntervalSusbcribe(ClientWebSocket ClientWebSocket,  Action<Ticker> onTickerUpdate);
+    Task BookInstrumentIntervalSusbcribe(ClientWebSocket ClientWebSocket, Action<Book> onBookUpdate, CancellationToken cancellationToken );
+    Task TickerInstrumentIntervalSusbcribe(ClientWebSocket ClientWebSocket,  Action<Ticker> onTickerUpdate, CancellationToken cancellationToken);
 }
 public interface ISocketDataTransfer
 {
