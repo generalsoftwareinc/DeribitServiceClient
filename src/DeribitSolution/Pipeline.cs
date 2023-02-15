@@ -14,9 +14,10 @@ internal class Pipeline
 
     public async Task RunAsync()
     {
-        await client.IsDeribitAvailableAsync();
-        await client.InitializeAsync();
-        await client.DisconnectAsync();
+        //TODO: call with cancellation token
+        await client.IsDeribitAvailableAsync(CancellationToken.None);
+        await client.InitializeAsync(CancellationToken.None);
+        await client.DisconnectAsync(CancellationToken.None);
 
         client.OnTickerReceived += Client_OnTickerReceived;
     }

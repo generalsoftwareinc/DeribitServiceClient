@@ -15,36 +15,43 @@ namespace ServiceClient.Implements
 
         public event EventHandler OnTickerReceived;
 
-        public async Task<bool> DisconnectAsync()
+        public async Task<bool> DisconnectAsync(CancellationToken cancellationToken)
         {
             if (!initialized) 
                 return true;
             try
             {
-                await socketConnection.SocketDisconnectAsync(CancellationToken.None);
+                await socketConnection.SocketDisconnectAsync(cancellationToken);
                 return true;
             }
-            catch (Exception)
+            catch
             {
                 return false;
             }
         }
 
         private bool initialized = false;
-        public async Task<bool> InitializeAsync()
+        public async Task<bool> InitializeAsync(CancellationToken cancellationToken)
         {
             if (initialized) 
                 return true;
-            await socketConnection.SocketConnectAsync(CancellationToken.None);
-            initialized = true;
+            try
+            {
+                await socketConnection.SocketConnectAsync(cancellationToken);
+                initialized = true;
+            }
+            catch
+            {
+                initialized = false;
+            }
             return initialized;
         }
 
-        public async Task<bool> IsDeribitAvailableAsync()
+        public async Task<bool> IsDeribitAvailableAsync(CancellationToken cancellationToken)
         {            
             try
             {
-                await InitializeAsync();
+                await InitializeAsync(cancellationToken);
                 var request = new Request
                 {
                     Id = 100,
@@ -52,8 +59,8 @@ namespace ServiceClient.Implements
                 };
                 var socket = socketConnection.ClientWebSocket;
                 var message = RequestBuilder.BuildRequest(request);
-                await socketDataTransfer.SendAsync(socket, message, CancellationToken.None);
-                var result = await socketDataTransfer.ReceiveAsync(socket, CancellationToken.None);
+                await socketDataTransfer.SendAsync(socket, message, cancellationToken);
+                var result = await socketDataTransfer.ReceiveAsync(socket, cancellationToken);
                 return result != null;
             }
             catch (Exception)
