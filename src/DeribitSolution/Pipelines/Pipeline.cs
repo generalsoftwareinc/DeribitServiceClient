@@ -11,7 +11,7 @@ internal abstract class Pipeline
         this.client = client;
     }
 
-    public virtual async Task RunAsync(CancellationToken? cancellationToken = null)
+    public virtual async Task RunAsync(CancellationToken cancellationToken)
     {
         WritePipelineStep("Checking Deribit API Availability");
         await client.IsDeribitAvailableAsync(cancellationToken);
