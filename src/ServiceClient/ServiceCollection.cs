@@ -30,7 +30,7 @@ namespace ServiceClient
                 return true;
             });
             services.AddOptions<WebSocketOptions>()
-                .Bind(config.GetSection(nameof(WebSocketOptions)))
+                .Bind(configuration.GetSection(nameof(WebSocketOptions)))
                 .Validate(config =>
                 {
                     if (string.IsNullOrEmpty(config.Url))
