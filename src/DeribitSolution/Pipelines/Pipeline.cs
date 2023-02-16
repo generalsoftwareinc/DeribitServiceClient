@@ -21,15 +21,6 @@ internal abstract class Pipeline
         client.OnTickerReceived += Client_OnTickerReceived;
         await client.RunAsync(cancellationToken);
 
-        var authenticated = await client.Authenticate(cancellationToken);
-
-        if (!authenticated)
-            throw new Exception("Error trying to authetincate!");
-
-        await client.SubscribeToChannelsAsync(cancellationToken);
-
-        await client.ReceiveDataFromChannelsAsync(cancellationToken);
-
         WritePipelineStep("Disconnecting");
         await client.DisconnectAsync(cancellationToken);
     }
