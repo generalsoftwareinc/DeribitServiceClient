@@ -12,7 +12,7 @@ namespace ServiceClient
         {
             services.AddTransient<ISocketDataTransfer, SocketDataTransfer>();
             services.AddTransient<IDeribitSocketConnection, DeribitSocketConnection>();
-            services.AddTransient<IServiceClient, DeribitServiceClient>(); 
+            services.AddTransient<IServiceClient, DeribitServiceClient>();
             services.AddOptions<DeribitOptions>()
             .Bind(configuration.GetSection(nameof(DeribitOptions)))
             .Validate(config =>
