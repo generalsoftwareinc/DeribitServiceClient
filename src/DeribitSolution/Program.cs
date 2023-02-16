@@ -6,7 +6,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ServiceClient;
-using ServiceClient.DTOs;
 using Spectre.Console;
 
 #region Configuration
@@ -24,9 +23,10 @@ var host = Host.CreateDefaultBuilder()
     .ConfigureLogging((_, logging) =>
     {
         logging.ClearProviders();
-        logging.AddSimpleConsole(options => options.SingleLine= true);
+        logging.AddSimpleConsole(options => options.SingleLine = true);
     })
-    .ConfigureServices(services => {
+    .ConfigureServices(services =>
+    {
         services.AddSingleton<IConfiguration>(config);
         services.AddOptions<OutputOptions>()
                 .Bind(config.GetSection(nameof(OutputOptions)));
@@ -36,7 +36,8 @@ var host = Host.CreateDefaultBuilder()
         services.AddTransient(sp => AnsiConsole.Live(sp.GetRequiredService<Table>()));
         services.AddTransient<SpectreOutputPipeline>();
         services.AddTransient<LogOutputPipeline>();
-        services.AddTransient<Pipeline>((sp) => {
+        services.AddTransient<Pipeline>((sp) =>
+        {
             var output = sp.GetRequiredService<IOptions<OutputOptions>>();
             return output.Value.Type switch
             {

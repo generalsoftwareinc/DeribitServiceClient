@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ServiceClient;
 using ServiceClient.Abstractions;
 using ServiceClient.DTOs;
+using ServiceClient.Implements;
 using Spectre.Console;
 using System.Collections.ObjectModel;
 
@@ -24,7 +25,8 @@ internal class SpectreOutputPipeline : Pipeline
 
     public override Task RunAsync(CancellationToken cancellationToken)
     {
-        return liveTable.StartAsync( (ctx) => {
+        return liveTable.StartAsync((ctx) =>
+        {
             lastEvents.CollectionChanged += (s, e) =>
             {
                 UpdateTableItems();
@@ -49,14 +51,14 @@ internal class SpectreOutputPipeline : Pipeline
     private void UpdateTableItems()
     {
         table.Rows.Clear();
-        
-        var converter = new Func<(string, double, int), string>((x) => $"[bold]Change:[/] {x.Item1}, [bold red]Price:[/] {x.Item2}, [bold]Amount:[/] {x.Item3}");
+
+        var converter = new Func<BidAskParameter, string>((x) => $"[bold]Change:[/] {x.BidAskAction}, [bold red]Price:[/] {x.Price}, [bold]Amount:[/] {x.Amount}");
         for (var i = 0; i < lastEvents.Count; i++)
         {
             var ev = lastEvents[i];
             var asksAsString = string.Join("; ", ev.LastBook.Asks.Select(converter));
             var bidsAsString = string.Join("; ", ev.LastBook.Bids.Select(converter));
-           
+
             table.AddRow(
                 new Markup($"[bold green]{ev.InstrumentName}[/]"),
                 new Markup($"[bold red]{ev.State}[/]"),

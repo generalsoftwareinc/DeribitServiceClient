@@ -1,6 +1,7 @@
 ﻿using ServiceClient.Abstractions;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 
 namespace ServiceClient.Implements
 {
@@ -22,6 +23,13 @@ namespace ServiceClient.Implements
             }
             while (!response.EndOfMessage);
             return sb.ToString();
+        }
+
+        public async Task<T> ReceiveAsync<T>(ClientWebSocket socket, CancellationToken cancellationToken)
+        {
+            var jsonResult = await ReceiveAsync(socket, cancellationToken);
+            var result = JsonSerializer.Deserialize<T>(jsonResult);
+            return result;
         }
 
         public async Task SendAsync(ClientWebSocket socket, string message, CancellationToken cancellationToken)
