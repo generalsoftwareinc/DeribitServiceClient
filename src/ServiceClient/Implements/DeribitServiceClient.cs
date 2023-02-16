@@ -1,249 +1,68 @@
-﻿using System.Text.Json;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Logging;
 using ServiceClient.Abstractions;
-using ServiceClient.DTOs;
+using ServiceClient.Implements.SocketClient.DTOs;
 
-namespace ServiceClient.Implements
+namespace ServiceClient.Implements;
+
+internal class DeribitServiceClient : IServiceClient
 {
-    public class DeribitServiceClient : IServiceClient
+    private readonly IDeribitClient deribitSocket;
+    private readonly ILogger<DeribitServiceClient> logger;
+    private BookData? lastBook;
+
+    public DeribitServiceClient(IDeribitClient deribitSocket, ILogger<DeribitServiceClient> logger)
     {
-        private readonly IDeribitSocketConnection socketConnection;
-        private readonly ISocketDataTransfer socketDataTransfer;
-        private readonly DeribitOptions deribitOptions;
+        this.deribitSocket = deribitSocket;
+        this.logger = logger;
+    }
 
-        public DeribitServiceClient(IDeribitSocketConnection socketConnection, ISocketDataTransfer socketDataTransfer, IOptions<DeribitOptions> deribitOptions)
+    public event TickerReceivedEventHandler? OnTickerReceived;
+    public async Task<bool> DisconnectAsync(CancellationToken cancellationToken)
+    {
+        try
         {
-            this.socketConnection = socketConnection;
-            this.socketDataTransfer = socketDataTransfer;
-            this.deribitOptions = deribitOptions.Value;
+            await deribitSocket.DisconnectAsync(cancellationToken);
+            return true;
         }
-
-        public event TickerReceivedEventHandler? OnTickerReceived;
-
-        public async Task<bool> DisconnectAsync(CancellationToken cancellationToken)
+        catch (Exception ex)
         {
-            if (!initialized)
-                return true;
-            try
-            {
-                await socketConnection.SocketDisconnectAsync(cancellationToken);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            logger.LogError("An error occur {error}", ex);
+            return false;
         }
+    }
 
-        private bool initialized = false;
-        public async Task<bool> InitializeAsync(CancellationToken cancellationToken)
+    public async Task<bool> RunAsync(CancellationToken cancellationToken)
+    {
+        try
         {
-            if (initialized)
-                return true;
-            try
-            {
-                await socketConnection.SocketConnectAsync(cancellationToken);
-                initialized = true;
-            }
-            catch
-            {
-                initialized = false;
-            }
-            return initialized;
-        }
+            await deribitSocket.CheckAvailabilityAsync(cancellationToken);
+            await deribitSocket.AuthenticateAsync(cancellationToken);
+            await deribitSocket.SubscribeAsync(cancellationToken);
+            deribitSocket.OnBookReaded += DeribitSocket_OnBookReaded;
+            deribitSocket.OnTickerReaded += DeribitSocket_OnTickerReaded;
 
-        public async Task<bool> IsDeribitAvailableAsync(CancellationToken cancellationToken)
+            await deribitSocket.ContinueReadAsync(cancellationToken);
+            return true;
+        }
+        catch (Exception ex)
         {
-            try
-            {
-                await InitializeAsync(cancellationToken);
-                var request = new Request
-                {
-                    Id = 100,
-                    Method = "public/test"
-                };
-                var socket = socketConnection.ClientWebSocket;
-                var message = RequestBuilder.BuildRequest(request);
-                await socketDataTransfer.SendAsync(socket, message, cancellationToken);
-                var result = await socketDataTransfer.ReceiveAsync(socket, cancellationToken);
-                return result != null;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
+            logger.LogError("An error occur {error}", ex);
+            return false;
         }
+    }
 
-        public async Task<bool> Authenticate(CancellationToken cancellationToken)
-        {
-            try
-            {
-                var request = new Request
-                {
-                    Id = 100,
-                    Method = "public/auth",
-                    Parameters = new
-                    {
-                        grant_type = "client_credentials",
-                        client_id = deribitOptions.ApiKey,
-                        client_secret = deribitOptions.ApiSecret,
-                    }
-                };
+    private void DeribitSocket_OnTickerReaded(object? sender, TickerReadedEventArgs e)
+    {
+        OnTickerReceived?.Invoke(this, new TickerReceivedEventArgs(e.Readed.Parameters?.Data, lastBook));
+    }
 
-                var socket = socketConnection.ClientWebSocket;
-                var message = RequestBuilder.BuildRequest(request);
-                await socketDataTransfer.SendAsync(socket, message, cancellationToken);
-                var result = await socketDataTransfer.ReceiveAsync<AuthResponse>(socket, cancellationToken);
+    private void DeribitSocket_OnBookReaded(object? sender, BookReadedEventArgs e)
+    {
+        lastBook = e.Readed.Parameters?.Data;
+    }
 
-                return result != null;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<bool> SubscribeToChannelsAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                var request = new Request
-                {
-                    Id = 1,
-                    Method = "private/subscribe",
-                    Parameters = new
-                    {
-                        channels = new string[]
-                        {
-                            "book.BTC-PERPETUAL.raw" ,
-                            "ticker.BTC-PERPETUAL.raw"
-                        }
-                    }
-                };
-
-                var socket = socketConnection.ClientWebSocket;
-                var message = RequestBuilder.BuildRequest(request);
-                await socketDataTransfer.SendAsync(socket, message, cancellationToken);
-                var result = await socketDataTransfer.ReceiveAsync<SubscribeChannelsResponse>(socket, cancellationToken);
-                return result != null;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task ReceiveDataFromChannelsAsync(CancellationToken cancellationToken)
-        {
-            if (OnTickerReceived == null)
-                throw new NullReferenceException(nameof(OnTickerReceived));
-
-            var socket = socketConnection.ClientWebSocket;
-            var firstBook = await ReceiveFirstBookResponse(cancellationToken);
-
-            if (firstBook == null)
-                throw new NullReferenceException(nameof(firstBook));
-
-            var lastBook = firstBook;
-
-
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                var jsonResult = await socketDataTransfer.ReceiveAsync(socket, cancellationToken);
-                var isBookChannel = jsonResult.IndexOf("book.BTC-PERPETUAL.raw") >= 0;
-
-                if (isBookChannel)
-                {
-                    var book = JsonSerializer.Deserialize<BookResponse>(jsonResult);
-                    if (book == null)
-                        throw new NullReferenceException(nameof(book));
-
-                    lastBook = book;
-                }
-                else
-                {
-                    var ticker = JsonSerializer.Deserialize<TickerResponse>(jsonResult);
-                    if (ticker == null)
-                        throw new NullReferenceException(nameof(ticker));
-
-                    var tickerData = ticker.Parameters.Data;
-
-                    var book = new Book
-                    {
-                        Asks = GetAsks(lastBook.Parameters.Data.Asks),
-                        Bids = GetAsks(lastBook.Parameters.Data.Bids),
-                    };
-
-                    var tickerEventArgs = new TickerReceivedEventArgs
-                    {
-                        Ticker = new DTOs.Ticker
-                        {
-                            InstrumentName = tickerData.InstrumentName,
-                            State = tickerData.State,
-                            MinPrice = tickerData.MinPrice,
-                            MaxPrice = tickerData.MaxPrice,
-                            BestBidPrice = tickerData.BestBidPrice.Value,
-                            BestAskPrice = tickerData.BestAskPrice.Value,
-                            LastBook = book,
-                        }
-                    };
-
-                    OnTickerReceived.Invoke(this, tickerEventArgs);
-                }
-            }
-        }
-
-        List<BidAskParameter> GetAsks(dynamic[] items)
-        {
-            var result = new List<BidAskParameter>(items.Length + 1);
-
-            for (int i = 0; i < items.Length; i++)
-            {
-                var element = items[i];
-                var action = (JsonElement)element[0];
-                var price = (JsonElement)element[1];
-                var amount = (JsonElement)element[2];
-
-                var item = new BidAskParameter
-                {
-                    BidAskAction = action.GetString(),
-                    Price = price.GetDouble(),
-                    Amount = amount.GetDouble(),
-                };
-
-                result.Add(item);
-            }
-
-            return result;
-        }
-
-        async Task<BookResponse?> ReceiveFirstBookResponse(CancellationToken cancellationToken)
-        {
-            try
-            {
-                var socket = socketConnection.ClientWebSocket;
-
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    var jsonResult = await socketDataTransfer.ReceiveAsync(socket, cancellationToken);
-                    var isBookChannel = jsonResult.IndexOf("book.BTC-PERPETUAL.raw") >= 0;
-
-                    if (!isBookChannel)
-                        continue;
-
-                    var book = JsonSerializer.Deserialize<BookResponse>(jsonResult);
-                    if (book == null)
-                        throw new NullReferenceException(nameof(book));
-
-                    return book;
-                }
-
-                return null;
-            }
-            catch (Exception e)
-            {
-                return null;
-            }
-        }
+    public Task<bool> IsDeribitAvailableAsync(CancellationToken cancellationToken)
+    {
+        return Task.FromResult(true);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace ServiceClient.Abstractions
 {
-    public interface IRequest
+    public interface IRequest<T>
     {
         public long Id { get; set; }
 
@@ -12,6 +12,6 @@ namespace ServiceClient.Abstractions
         public string Method { get; set; }
 
         [JsonPropertyName("params")]
-        public object Parameters { get; set; }
+        public T? Parameters { get; set; }
     }
 }

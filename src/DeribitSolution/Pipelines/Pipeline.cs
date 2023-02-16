@@ -19,7 +19,7 @@ internal abstract class Pipeline
 
         PreInitializeHook();
         client.OnTickerReceived += Client_OnTickerReceived;
-        await client.InitializeAsync(cancellationToken);
+        await client.RunAsync(cancellationToken);
 
         var authenticated = await client.Authenticate(cancellationToken);
 

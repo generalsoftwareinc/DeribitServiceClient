@@ -14,7 +14,7 @@ internal class LogOutputPipeline : Pipeline
 
     protected override void Client_OnTickerReceived(object? sender, TickerReceivedEventArgs e)
     {
-        logger.LogInformation("Ticker: {Ticker}", e.Ticker.ToString());
+        logger.LogInformation("Ticker: {Ticker}', Book: {Book}", e.Ticker, e.Book);
     }
 
     protected override void WritePipelineStep(string stepInfo)

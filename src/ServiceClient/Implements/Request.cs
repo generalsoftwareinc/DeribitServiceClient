@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace ServiceClient.Implements
 {
-    internal class Request : IRequest
+    internal class Request<T> : IRequest<T>
     {
         public long Id { get; set; }
 
@@ -13,6 +13,6 @@ namespace ServiceClient.Implements
         public string Method { get; set; } = "";
 
         [JsonPropertyName("params")]
-        public object Parameters { get; set; } = new object();
+        public T? Parameters { get; set; } = default(T);
     }
 }

@@ -1,4 +1,4 @@
-﻿using ServiceClient.DTOs;
+﻿using ServiceClient.Implements.SocketClient.DTOs;
 
 namespace ServiceClient;
 
@@ -7,5 +7,12 @@ public delegate void TickerReceivedEventHandler(object? sender, TickerReceivedEv
 
 public class TickerReceivedEventArgs : EventArgs
 {
-    public Ticker Ticker { get; set; }
+    public TickerReceivedEventArgs(TickerData? ticker, BookData? book)
+    {
+        Ticker = ticker;
+        Book = book;
+    }
+
+    public TickerData? Ticker { get;}
+    public BookData? Book { get; }
 }
