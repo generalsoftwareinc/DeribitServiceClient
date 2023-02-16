@@ -62,6 +62,7 @@ internal class DeribitSocketClient : IDeribitClient
 
     private async Task<string> ReadStringAsync(CancellationToken cancellationToken)
     {
+        stringBuilder.Clear();
         WebSocketReceiveResult response;        
         do
         {
