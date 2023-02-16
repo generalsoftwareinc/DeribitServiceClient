@@ -56,12 +56,13 @@ internal class DeribitSocketClient : IDeribitClient
         return webSocket.SendAsync(buffer, WebSocketMessageType.Text, true, cancellationToken);
     }
 
+    private StringBuilder stringBuilder = new();
+    private byte[] readBuffer = new byte[readBufferSize];
+    private WebSocketState[] receiveValidStates = new[] { WebSocketState.Open, WebSocketState.CloseSent };
+
     private async Task<string> ReadStringAsync(CancellationToken cancellationToken)
     {
-        WebSocketReceiveResult response;
-        StringBuilder stringBuilder = new();
-        byte[] readBuffer = new byte[readBufferSize];
-        var receiveValidStates = new[] { WebSocketState.Open, WebSocketState.CloseSent };
+        WebSocketReceiveResult response;        
         do
         {
             if (!receiveValidStates.Contains(webSocket.State)) return string.Empty;
