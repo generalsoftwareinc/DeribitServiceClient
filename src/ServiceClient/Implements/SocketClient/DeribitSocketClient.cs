@@ -169,14 +169,13 @@ internal class DeribitSocketClient : IDeribitClient
         };
 
         await SendAsync("private/subscribe", data, token);
-        var jsonResult = await ReadStringAsync(token);
-        var subscriptionResult = JsonSerializer.Deserialize<SubscribeChannelsResponse>(jsonResult);
+        var channelsSubscribed = await ReadAsync<string[]>(token);
 
-        if (subscriptionResult == null)
+        if (channelsSubscribed == null || channelsSubscribed.Result == null)
             throw new Exception("Can't subscribe to the channels");
 
         var notSubscribedChannels = data.channels
-            .Except(subscriptionResult.Result)
+            .Except(channelsSubscribed.Result)
             .ToArray();
 
         if (notSubscribedChannels.Any())
