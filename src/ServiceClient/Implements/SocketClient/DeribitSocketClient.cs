@@ -1,7 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
 using ServiceClient.Abstractions;
 using ServiceClient.Implements.SocketClient.DTOs;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -12,13 +13,14 @@ namespace ServiceClient.Implements.SocketClient;
 internal class DeribitSocketClient : IDeribitClient
 {
     private int nextId = 0;
-    private const int readBufferSize = 100;
+    private const int readBufferSize = 4096;
     private readonly ClientWebSocket webSocket;
     private readonly DeribitOptions deribitOptions;
-    public event EventHandler<BookReadedEventArgs>? OnBookReaded;
+    public event EventHandler<BookReadedEventArgs>? OnBookReaded; 
     public event EventHandler<TickerReadedEventArgs>? OnTickerReaded;
     private Timer? refreshTokenTimer;
-
+    public static BlockingCollection<string> readMessageQueue = new BlockingCollection<string>();
+    
     public AuthResult? Credentials { get; protected set; }
     public DeribitSocketClient(IOptions<DeribitOptions> options)
     {
@@ -167,23 +169,22 @@ internal class DeribitSocketClient : IDeribitClient
         {
             channels = new[] { BookChannel, TickerChannel }
         };
-
         await SendAsync("private/subscribe", data, token);
         await ReadAsync<object>(token);
     }
 
     public async Task ContinueReadAsync(CancellationToken token)
     {
+        _ = Task.Run(() => ReceiveMessageAsync(webSocket, token), token);
         while (!token.IsCancellationRequested)
         {
-            var jsonResult = await ReadStringAsync(token);
-
-            var isBookMessage = jsonResult.IndexOf(BookChannel) >= 0;
-            var isTikerMessage = jsonResult.IndexOf(TickerChannel) >= 0;
+            var message = readMessageQueue.Take();
+            var isBookMessage = message.IndexOf(BookChannel) >= 0;
+            var isTikerMessage = message.IndexOf(TickerChannel) >= 0;
 
             if (isBookMessage)
             {
-                var book = JsonSerializer.Deserialize<BookResponse>(jsonResult);
+                var book = JsonSerializer.Deserialize<BookResponse>(message);
                 if (book is not null)
                 {
                     OnBookReaded?.Invoke(this, new BookReadedEventArgs(book));
@@ -191,19 +192,19 @@ internal class DeribitSocketClient : IDeribitClient
             }
             else if (isTikerMessage)
             {
-                var ticker = JsonSerializer.Deserialize<TickerResponse>(jsonResult);
+                var ticker = JsonSerializer.Deserialize<TickerResponse>(message);
                 if (ticker is not null)
                 {
                     OnTickerReaded?.Invoke(this, new TickerReadedEventArgs(ticker));
                 }
             }
-            else if (jsonResult.Contains("test_request"))
+            else if (message.Contains("test_request"))
             {
                 await SendTestAsync(token);
             }
-            else if (jsonResult.Contains("refresh_token"))
+            else if (message.Contains("refresh_token"))
             {
-                ParseCredentials(jsonResult);
+                ParseCredentials(message);
             }
         }
     }
@@ -226,6 +227,30 @@ internal class DeribitSocketClient : IDeribitClient
         PropertyNamingPolicy = new LowerCaseNamingPolicy(),
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+
+    async static Task ReceiveMessageAsync(ClientWebSocket ws, CancellationToken token)
+    {
+        var buffer = WebSocket.CreateClientBuffer(1024, 1024);
+        WebSocketReceiveResult taskResult;
+        var jsonResult = new StringBuilder();
+
+        while (ws.State == WebSocketState.Open && !token.IsCancellationRequested)
+        {
+            jsonResult.Clear();
+            do
+            {
+                taskResult = await ws.ReceiveAsync(buffer, token);
+                if (buffer.Array == null) continue;
+                jsonResult.Append(Encoding.UTF8.GetString(buffer.Array, 0, taskResult.Count));
+
+            } while (!taskResult.EndOfMessage);
+
+            if (jsonResult.Length > 0)
+            {
+                readMessageQueue.Add(jsonResult.ToString());
+            }
+        }
+    }
 
     class LowerCaseNamingPolicy : JsonNamingPolicy
     {
