@@ -23,10 +23,9 @@ var host = Host.CreateDefaultBuilder()
     .ConfigureLogging((_, logging) =>
     {
         logging.ClearProviders();
-        logging.AddSimpleConsole(options => options.SingleLine = true);
+        logging.AddSimpleConsole(options => options.SingleLine= true);
     })
-    .ConfigureServices(services =>
-    {
+    .ConfigureServices(services => {
         services.AddSingleton<IConfiguration>(config);
         services.AddOptions<OutputOptions>()
                 .Bind(config.GetSection(nameof(OutputOptions)));
@@ -36,8 +35,7 @@ var host = Host.CreateDefaultBuilder()
         services.AddTransient(sp => AnsiConsole.Live(sp.GetRequiredService<Table>()));
         services.AddTransient<SpectreOutputPipeline>();
         services.AddTransient<LogOutputPipeline>();
-        services.AddTransient<Pipeline>((sp) =>
-        {
+        services.AddTransient<Pipeline>((sp) => {
             var output = sp.GetRequiredService<IOptions<OutputOptions>>();
             return output.Value.Type switch
             {
@@ -57,9 +55,19 @@ var pipeline = host.Services.GetRequiredService<Pipeline>();
 
 void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
 {
-    cancellationToken.Cancel();
-    Console.CancelKeyPress -= Console_CancelKeyPress;
-    e.Cancel = true;
+    try
+    {
+        pipeline.DisconnectAsync(cancellationToken.Token).Wait();
+        cancellationToken.Cancel();
+        Console.CancelKeyPress -= Console_CancelKeyPress;
+    }
+    catch (Exception ex)  {
+        Console.WriteLine($"Error desconecting {ex.Message}");
+    }
+    finally
+    {
+        e.Cancel = true;
+    }
 }
 
 Console.CancelKeyPress += Console_CancelKeyPress;

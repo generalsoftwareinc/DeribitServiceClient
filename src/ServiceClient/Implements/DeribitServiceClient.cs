@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using ServiceClient.Abstractions;
+using ServiceClient.Exceptions;
 using ServiceClient.Implements.SocketClient.DTOs;
 
 namespace ServiceClient.Implements;
@@ -24,31 +25,28 @@ internal class DeribitServiceClient : IServiceClient
             await deribitSocket.DisconnectAsync(cancellationToken);
             return true;
         }
-        catch (Exception ex)
+        catch 
         {
-            logger.LogError("An error occur {error}", ex);
             return false;
         }
     }
 
-    public async Task<bool> RunAsync(CancellationToken cancellationToken)
+    public async Task RunAsync(CancellationToken cancellationToken)
     {
         try
         {
             await deribitSocket.CheckAvailabilityAsync(cancellationToken);
-            await deribitSocket.InitializeAsync(cancellationToken);
-            await deribitSocket.SubscribeAsync(cancellationToken);
-            deribitSocket.OnBookReaded += DeribitSocket_OnBookReaded;
-            deribitSocket.OnTickerReaded += DeribitSocket_OnTickerReaded;
-
-            await deribitSocket.ContinueReadAsync(cancellationToken);
-            return true;
         }
-        catch (Exception ex)
+        catch
         {
-            logger.LogError("An error occur {error}", ex);
-            return false;
+            throw new UnavailableDeribitException();
         }
+
+        await deribitSocket.InitializeAsync(cancellationToken);
+        await deribitSocket.SubscribeAsync(cancellationToken);
+        deribitSocket.OnBookReaded += DeribitSocket_OnBookReaded;
+        deribitSocket.OnTickerReaded += DeribitSocket_OnTickerReaded;
+        await deribitSocket.ContinueReadAsync(cancellationToken);
     }
 
     private void DeribitSocket_OnTickerReaded(object? sender, TickerReadedEventArgs e)
@@ -61,8 +59,8 @@ internal class DeribitServiceClient : IServiceClient
         lastBook = e.Readed.Parameters?.Data;
     }
 
-    public Task<bool> IsDeribitAvailableAsync(CancellationToken cancellationToken)
+    public Task IsDeribitAvailableAsync(CancellationToken cancellationToken)
     {
-        return Task.FromResult(true);
+        return  deribitSocket.CheckAvailabilityAsync(cancellationToken);
     }
 }
