@@ -170,7 +170,21 @@ internal class DeribitSocketClient : IDeribitClient
             channels = new[] { BookChannel, TickerChannel }
         };
         await SendAsync("private/subscribe", data, token);
-        await ReadAsync<object>(token);
+        var jsonResult = await ReadStringAsync(token);
+        var subscriptionResult = JsonSerializer.Deserialize<SubscribeChannelsResponse>(jsonResult);
+
+        if (subscriptionResult == null)
+            throw new Exception("Can't subscribe to the channels");
+
+        var notSubscribedChannels = data.channels
+            .Except(subscriptionResult.Result)
+            .ToArray();
+
+        if (notSubscribedChannels.Any())
+        {
+            var channels = string.Join(", ", notSubscribedChannels);
+            throw new Exception($"Can't subscribe to the following channels: {channels}");
+        }
     }
 
     public async Task ContinueReadAsync(CancellationToken token)
