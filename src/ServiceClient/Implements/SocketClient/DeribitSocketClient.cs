@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using ServiceClient.Abstractions;
-using ServiceClient.Implements;
 using ServiceClient.Implements.SocketClient.DTOs;
-using System;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -129,10 +127,11 @@ internal class DeribitSocketClient : IDeribitClient
 
     private Task AuthenticateWithRefreshTokenAsync(CancellationToken token)
     {
+        if (string.IsNullOrEmpty(Credentials?.RefreshToken)) return Task.CompletedTask;
         var data = new
         {
             grant_type = "refresh_token",
-            refresh_token = Credentials?.RefreshToken ?? string.Empty,
+            refresh_token = Credentials!.RefreshToken,
         };
         return AuthenticateWithDataAsync(data, token);
     }
