@@ -107,7 +107,11 @@ internal class DeribitSocketClient : IDeribitClient
             await ConnectAsync(token);
         }
         await SendTestAsync(token);
-        await ReadAsync<object>(token);
+        var result = await ReadAsync<object>(token);
+        if (result?.Result == null)
+        {
+            throw new Exception("Sorry, your configuration is not OK. Check and try again later.");
+        }
     }
     public async Task InitializeAsync(CancellationToken token)
     {

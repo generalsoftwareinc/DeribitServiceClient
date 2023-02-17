@@ -26,6 +26,7 @@ internal class SpectreOutputPipeline : Pipeline
     {
         return liveTable.StartAsync((ctx) =>
         {
+            AddTableHeaders();
             lastEvents.CollectionChanged += (s, e) =>
             {
                 UpdateTableItems();
@@ -91,11 +92,5 @@ internal class SpectreOutputPipeline : Pipeline
     protected override void WritePipelineStep(string stepInfo)
     {
         AnsiConsole.MarkupLine($"LOG: [bold red]{stepInfo}[/]");
-    }
-
-    protected override void PreInitializeHook()
-    {
-        base.PreInitializeHook();
-        AddTableHeaders();
     }
 }

@@ -1,5 +1,6 @@
 ﻿using ServiceClient;
 using ServiceClient.Abstractions;
+using ServiceClient.Exceptions;
 
 namespace ConsoleApp.Pipelines;
 
@@ -11,18 +12,38 @@ internal abstract class Pipeline
     {
         this.client = client;
     }
+    public async Task DisconnectAsync(CancellationToken cancellationToken)
+    {
+        WritePipelineStep("Disconnecting");
+        var result = await client.DisconnectAsync(cancellationToken);
+        if (!result)
+        {
+            WritePipelineStep("Sorry, an issue occurs when disconnected from Deribit Socket.");
+        }
+    }
 
     public virtual async Task RunAsync(CancellationToken cancellationToken)
     {
         WritePipelineStep("Checking Deribit API Availability");
-        await client.IsDeribitAvailableAsync(cancellationToken);
-
-        PreInitializeHook();
-        client.OnTickerReceived += Client_OnTickerReceived;
-        await client.RunAsync(cancellationToken);
-
-        WritePipelineStep("Disconnecting");
-        await client.DisconnectAsync(cancellationToken);
+        try
+        {
+            await client.IsDeribitAvailableAsync(cancellationToken);
+            PreInitializeHook();
+            client.OnTickerReceived += Client_OnTickerReceived;
+            await client.RunAsync(cancellationToken);
+        }
+        catch (UnavailableDeribitException ex)
+        {
+            WritePipelineStep(ex.Message);
+        }
+        catch
+        {
+            WritePipelineStep("Sorry, your configuration is not OK. Check and try again later.");
+        }
+        finally
+        {
+            await DisconnectAsync(cancellationToken);
+        }
     }
 
     protected abstract void Client_OnTickerReceived(object? sender, TickerReceivedEventArgs e);
