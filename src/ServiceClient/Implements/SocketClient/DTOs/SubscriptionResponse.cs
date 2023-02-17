@@ -15,10 +15,6 @@ public class ActionResponse<T> where T : class
 {
     [JsonPropertyName("result")]
     public T? Result { get; set; }
-
-    [JsonPropertyName("tesnet")]
-    [JsonConverter(typeof(ObjectBoolConverter))]
-    public bool Tesnet { get; set; }
 }
 public class SubscriptionResponse<T> : Response
 {
