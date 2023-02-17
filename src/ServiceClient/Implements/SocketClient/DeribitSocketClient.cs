@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using ServiceClient.Abstractions;
 using ServiceClient.Implements.SocketClient.DTOs;
+using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -53,7 +54,6 @@ internal class DeribitSocketClient : IDeribitClient
             Method = method,
             Parameters = data,
         };
-        var jsonOptions = BuildOptions();
         var jsonMessage = JsonSerializer.Serialize(request, jsonOptions);
         var buffer = new byte[jsonMessage.Length];
 
@@ -61,15 +61,12 @@ internal class DeribitSocketClient : IDeribitClient
 
         return webSocket.SendAsync(buffer, WebSocketMessageType.Text, true, cancellationToken);
     }
-
-    private StringBuilder stringBuilder = new();
-    private byte[] readBuffer = new byte[readBufferSize];
-    private WebSocketState[] receiveValidStates = new[] { WebSocketState.Open, WebSocketState.CloseSent };
-
+    static private readonly byte[] readBuffer = new byte[readBufferSize];
+    static private readonly IEnumerable<WebSocketState> receiveValidStates = new[] { WebSocketState.Open, WebSocketState.CloseSent };
     private async Task<string> ReadStringAsync(CancellationToken cancellationToken)
     {
-        stringBuilder.Clear();
-        WebSocketReceiveResult response;        
+        StringBuilder stringBuilder = new();
+        WebSocketReceiveResult response;
         do
         {
             if (!receiveValidStates.Contains(webSocket.State)) return string.Empty;
@@ -92,9 +89,6 @@ internal class DeribitSocketClient : IDeribitClient
         where T : class
     {
         var result = await ReadStringAsync(token);
-        var jsonOptions = BuildOptions();
-        jsonOptions.Converters.Add(new ObjectBoolConverter());
-
         return JsonSerializer.Deserialize<ActionResponse<T>>(result, jsonOptions);
     }
 
@@ -113,8 +107,12 @@ internal class DeribitSocketClient : IDeribitClient
         await SendTestAsync(token);
         await ReadAsync<object>(token);
     }
-
-    public Task AuthenticateAsync(CancellationToken token)
+    public async Task InitializeAsync(CancellationToken token)
+    {
+        await AuthenticateAsync(token);
+        await SetHeartbeatAsync(token);
+    }
+    private async Task AuthenticateAsync(CancellationToken token)
     {
         var data = new
         {
@@ -122,7 +120,9 @@ internal class DeribitSocketClient : IDeribitClient
             client_id = deribitOptions.ClientId,
             client_secret = deribitOptions.ClientSecret,
         };
-        return AuthenticateWithDataAsync(data, token);
+        await AuthenticateWithDataAsync(data, token);
+        var credentials = await ReadStringAsync(token);
+        ParseCredentials(credentials);
     }
 
     private Task AuthenticateWithRefreshTokenAsync(CancellationToken token)
@@ -143,14 +143,6 @@ internal class DeribitSocketClient : IDeribitClient
             await ConnectAsync(token);
         }
         await SendAsync("public/auth", data, token);
-        var credentials = await ReadAsync<AuthResult>(token);
-        Credentials = credentials?.Result;
-        if (Credentials?.ExpiresIn != null)
-        {
-            refreshTokenTimer = new Timer(Timer_Elapsed);
-            refreshTokenTimer.Change(100, (int)Credentials?.ExpiresIn! - 300);
-        }
-        await SetHeartbeatAsync(token);
     }
 
     public async Task SetHeartbeatAsync(CancellationToken token)
@@ -209,16 +201,34 @@ internal class DeribitSocketClient : IDeribitClient
             {
                 await SendTestAsync(token);
             }
+            else if (jsonResult.Contains("refresh_token"))
+            {
+                ParseCredentials(jsonResult);
+            }
         }
     }
-    static JsonSerializerOptions BuildOptions() => new JsonSerializerOptions
+
+    private void ParseCredentials(string json)
+    {
+        refreshTokenTimer?.Dispose();
+        var credentials = JsonSerializer.Deserialize<ActionResponse<AuthResult>>(json, jsonOptions); ;
+        Credentials = credentials?.Result;
+        if (Credentials?.ExpiresIn != null)
+        {
+            refreshTokenTimer = new Timer(Timer_Elapsed);
+            var runAt = Credentials!.ExpiresIn! - 300;
+            refreshTokenTimer.Change(runAt, runAt);
+        }
+    }
+
+    static JsonSerializerOptions jsonOptions = new JsonSerializerOptions
     {
         PropertyNamingPolicy = new LowerCaseNamingPolicy(),
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+
     class LowerCaseNamingPolicy : JsonNamingPolicy
     {
         public override string ConvertName(string name) => name.ToLower();
     }
-
 }

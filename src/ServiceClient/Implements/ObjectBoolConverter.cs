@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace ServiceClient.Implements
 {
-    internal class ObjectBoolConverter : JsonConverter<object>
+    internal class ObjectBoolConverter : JsonConverter<bool>
     {
-        public override object Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)
+        public override bool Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             if (reader.TokenType == JsonTokenType.True)
             {
@@ -22,23 +22,10 @@ namespace ServiceClient.Implements
                 return false;
             }
 
-            // Forward to the JsonElement converter
-            var converter = options.GetConverter(typeof(JsonElement)) as JsonConverter<JsonElement>;
-            if (converter != null)
-            {
-                return converter.Read(ref reader, type, options);
-            }
-
             throw new JsonException();
-
-            // or for best performance, copy-paste the code from that converter:
-            //using (JsonDocument document = JsonDocument.ParseValue(ref reader))
-            //{
-            //    return document.RootElement.Clone();
-            //}
         }
 
-        public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, bool value, JsonSerializerOptions options)
         {
             throw new InvalidOperationException("Directly writing object not supported");
         }

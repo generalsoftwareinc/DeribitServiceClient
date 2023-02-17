@@ -36,7 +36,7 @@ internal class DeribitServiceClient : IServiceClient
         try
         {
             await deribitSocket.CheckAvailabilityAsync(cancellationToken);
-            await deribitSocket.AuthenticateAsync(cancellationToken);
+            await deribitSocket.InitializeAsync(cancellationToken);
             await deribitSocket.SubscribeAsync(cancellationToken);
             deribitSocket.OnBookReaded += DeribitSocket_OnBookReaded;
             deribitSocket.OnTickerReaded += DeribitSocket_OnTickerReaded;
