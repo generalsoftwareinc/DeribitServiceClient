@@ -4,7 +4,7 @@ name: Compile and Publish .NET Release
 on:
   push:
     branches:
-      - feat-ci-cd-release
+      - main
     tags:
       - 'v*.*.*'
 
