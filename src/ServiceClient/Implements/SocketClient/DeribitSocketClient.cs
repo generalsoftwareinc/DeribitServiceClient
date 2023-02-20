@@ -36,10 +36,10 @@ internal class DeribitSocketClient : IDeribitClient
     protected string BookChannel => $"book.{deribitOptions.InstrumentName}.{deribitOptions.BookInterval}";
     protected string TickerChannel => $"ticker.{deribitOptions.InstrumentName}.{deribitOptions.TickerInterval}";
 
-    private void Timer_Elapsed(object? state)
+    private async void Timer_Elapsed(object? state)
     {
         refreshTokenTimer?.Dispose();
-        AuthenticateWithRefreshTokenAsync(CancellationToken.None).Wait();
+        await AuthenticateWithRefreshTokenAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     private Task SendTestAsync(CancellationToken token)
@@ -65,26 +65,6 @@ internal class DeribitSocketClient : IDeribitClient
         return webSocket.SendAsync(sendBuffer, WebSocketMessageType.Text, true, cancellationToken);
     }
 
-    static private readonly byte[] readBuffer = new byte[readBufferSize];
-    static private readonly IEnumerable<WebSocketState> receiveValidStates = new[] { WebSocketState.Open, WebSocketState.CloseSent };
-    private readonly StringBuilder stringBuilder = new();
-    
-    private async Task<string> ReadStringAsync(CancellationToken cancellationToken)
-    {
-        WebSocketReceiveResult response;
-        stringBuilder.Clear();
-        do
-        {
-            if (!receiveValidStates.Contains(webSocket.State)) return string.Empty;
-            response = await webSocket.ReceiveAsync(readBuffer, cancellationToken);
-            var result = Encoding.Default.GetString(readBuffer, 0, response.Count);
-            stringBuilder.Append(result);
-        }
-        while (!response.EndOfMessage);
-
-        return stringBuilder.ToString();
-    }
-
     private async Task ConnectAsync(CancellationToken token)
     {
         if (webSocket.State == WebSocketState.Open) return;
@@ -94,7 +74,7 @@ internal class DeribitSocketClient : IDeribitClient
     private async Task<ActionResponse<T>?> ReadAsync<T>(CancellationToken token)
         where T : class
     {
-        var message = await ReadStringAsync(token);
+        var message = await ReadOneMessageAsync(webSocket, token);
         message.TryDeserialize<ActionResponse<T>>(out var result);
         return result;
     }
@@ -135,7 +115,7 @@ internal class DeribitSocketClient : IDeribitClient
             client_secret = deribitOptions.ClientSecret,
         };
         await AuthenticateWithDataAsync(data, token);
-        var credentials = await ReadStringAsync(token);
+        var credentials = await ReadOneMessageAsync(webSocket, token);
         ParseCredentials(credentials);
     }
 
@@ -165,7 +145,7 @@ internal class DeribitSocketClient : IDeribitClient
         {
             interval = deribitOptions.HeartBeatInterval
         };
-        return Task.WhenAll(SendAsync("public/set_heartbeat", data, token), ReadStringAsync(token));
+        return Task.WhenAll(SendAsync("public/set_heartbeat", data, token), ReadOneMessageAsync(webSocket, token));
     }
 
     private async Task DisableHeartbeatAsync(CancellationToken token)
@@ -242,25 +222,30 @@ internal class DeribitSocketClient : IDeribitClient
 
     async static Task ReceiveMessageAsync(ClientWebSocket ws, CancellationToken token)
     {
-        WebSocketReceiveResult taskResult;
         while (ws.State == WebSocketState.Open && !token.IsCancellationRequested)
         {
-            jsonResult.Clear();
-            do
+            var message = await ReadOneMessageAsync(ws, token);
+            if (message.Length > 0)
             {
-                taskResult = await ws.ReceiveAsync(buffer, token);
-                if (buffer.Array == null) continue;
-                jsonResult.Append(Encoding.UTF8.GetString(buffer.Array, 0, taskResult.Count));
-
-            } while (!taskResult.EndOfMessage);
-
-            if (jsonResult.Length > 0)
-            {
-                readMessageQueue.Add(jsonResult.ToString(), token);
+                readMessageQueue.Add(message, token);
             }
         }
     }
+    static async Task<string> ReadOneMessageAsync(ClientWebSocket ws, CancellationToken token)
+    {
+        WebSocketReceiveResult taskResult;
 
+        jsonResult.Clear();
+        do
+        {
+            taskResult = await ws.ReceiveAsync(buffer, token);
+            if (buffer.Array == null) continue;
+            jsonResult.Append(Encoding.UTF8.GetString(buffer.Array, 0, taskResult.Count));
+
+        } while (!taskResult.EndOfMessage);
+
+        return jsonResult.ToString();
+    }
     static readonly JsonSerializerOptions jsonOptions = new()
     {
         PropertyNamingPolicy = new LowerCaseNamingPolicy(),
