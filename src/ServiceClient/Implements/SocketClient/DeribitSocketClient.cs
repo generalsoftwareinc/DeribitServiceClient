@@ -49,6 +49,7 @@ internal class DeribitSocketClient : IDeribitClient
 
     private Task SendAsync<T>(string method, T data, CancellationToken cancellationToken)
     {
+        if (webSocket.State != WebSocketState.Open) return Task.FromException(new NotSupportedException("The web socket is not open"));
         var request = new Request<T>
         {
             JsonRpcVersion = "2.0",
@@ -164,7 +165,7 @@ internal class DeribitSocketClient : IDeribitClient
         {
             interval = deribitOptions.HeartBeatInterval
         };
-        return SendAsync("public/set_heartbeat", data, token);
+        return Task.WhenAll(SendAsync("public/set_heartbeat", data, token), ReadStringAsync(token));
     }
 
     private async Task DisableHeartbeatAsync(CancellationToken token)
@@ -179,7 +180,20 @@ internal class DeribitSocketClient : IDeribitClient
             channels = new[] { BookChannel, TickerChannel }
         };
         await SendAsync("private/subscribe", data, token);
-        await ReadAsync<object>(token);
+        var channelsSubscribed = await ReadAsync<string[]>(token);
+
+        if (channelsSubscribed?.Result == null)
+            throw new NotSupportedException("Can't subscribe to the channels");
+
+        var notSubscribedChannels = data.channels
+            .Except(channelsSubscribed.Result)
+            .ToArray();
+
+        if (notSubscribedChannels.Any())
+        {
+            var channels = string.Join(", ", notSubscribedChannels);
+            throw new NotSupportedException($"Can't subscribe to the following channels: {channels}");
+        }
     }
 
     public async Task ContinueReadAsync(CancellationToken token)

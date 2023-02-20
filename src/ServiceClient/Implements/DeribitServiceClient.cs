@@ -17,36 +17,19 @@ internal class DeribitServiceClient : IServiceClient
     }
 
     public event TickerReceivedEventHandler? OnTickerReceived;
-    public async Task<bool> DisconnectAsync(CancellationToken cancellationToken)
+    public async Task DisconnectAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            await deribitSocket.DisconnectAsync(cancellationToken);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError("An error occurs {error}", ex);
-            return false;
-        }
+        await deribitSocket.DisconnectAsync(cancellationToken);
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            await deribitSocket.CheckAvailabilityAsync(cancellationToken);
-            await deribitSocket.InitializeAsync(cancellationToken);
-            await deribitSocket.SubscribeAsync(cancellationToken);
-            deribitSocket.OnBookReaded += DeribitSocket_OnBookReaded;
-            deribitSocket.OnTickerReaded += DeribitSocket_OnTickerReaded;
-
-            await deribitSocket.ContinueReadAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError("An error occurs {error}", ex);
-        }
+        await deribitSocket.CheckAvailabilityAsync(cancellationToken);
+        await deribitSocket.InitializeAsync(cancellationToken);
+        await deribitSocket.SubscribeAsync(cancellationToken);
+        deribitSocket.OnBookReaded += DeribitSocket_OnBookReaded;
+        deribitSocket.OnTickerReaded += DeribitSocket_OnTickerReaded;
+        await deribitSocket.ContinueReadAsync(cancellationToken);
     }
 
     private void DeribitSocket_OnTickerReaded(object? sender, TickerReadedEventArgs e)
