@@ -190,21 +190,13 @@ internal class DeribitSocketClient : IDeribitClient
             var isBookMessage = message.Contains(BookChannel, StringComparison.CurrentCulture);
             var isTikerMessage = message.Contains(TickerChannel, StringComparison.CurrentCulture);
 
-            if (isBookMessage)
+            if (isBookMessage && TryDeserialize<BookResponse>(message, out var book))
             {
-                var book = JsonSerializer.Deserialize<BookResponse>(message);
-                if (book is not null)
-                {
-                    OnBookReaded?.Invoke(this, new BookReadedEventArgs(book));
-                }
+                OnBookReaded?.Invoke(this, new BookReadedEventArgs(book!));
             }
-            else if (isTikerMessage)
+            else if (isTikerMessage && TryDeserialize<TickerResponse>(message, out var ticker) )
             {
-                var ticker = JsonSerializer.Deserialize<TickerResponse>(message);
-                if (ticker is not null)
-                {
-                    OnTickerReaded?.Invoke(this, new TickerReadedEventArgs(ticker));
-                }
+                OnTickerReaded?.Invoke(this, new TickerReadedEventArgs(ticker!));
             }
             else if (message.Contains("test_request"))
             {
@@ -214,6 +206,27 @@ internal class DeribitSocketClient : IDeribitClient
             {
                 ParseCredentials(message);
             }
+        }
+    }
+
+    private static bool TryDeserialize<T>(string message, out T? data)
+        where T : class
+    {
+        data = default;
+
+        if (string.IsNullOrEmpty(message))
+        {
+            return false;
+        }
+
+        try
+        {
+            data = JsonSerializer.Deserialize<T>(message);
+            return data != null;
+        }
+        catch
+        {
+            return false;
         }
     }
 
