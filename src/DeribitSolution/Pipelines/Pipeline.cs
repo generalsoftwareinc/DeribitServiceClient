@@ -15,10 +15,13 @@ internal abstract class Pipeline
     public async Task DisconnectAsync(CancellationToken cancellationToken)
     {
         WritePipelineStep("Disconnecting");
-        var result = await client.DisconnectAsync(cancellationToken);
-        if (!result)
+        try
         {
-            WritePipelineStep("Sorry, an issue occurs when disconnected from Deribit Socket.");
+            await client.DisconnectAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            WritePipelineStep(ex.Message);
         }
     }
 
@@ -33,6 +36,10 @@ internal abstract class Pipeline
             await client.RunAsync(cancellationToken);
         }
         catch (UnavailableDeribitException ex)
+        {
+            WritePipelineStep(ex.Message);
+        }
+        catch (NotSupportedException ex)
         {
             WritePipelineStep(ex.Message);
         }
