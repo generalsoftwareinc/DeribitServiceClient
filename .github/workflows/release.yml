@@ -4,7 +4,7 @@ name: Compile and Publish .NET Release
 on:
   push:
     tags:
-      - '**'
+      - '*'
 
 jobs:
   build:
