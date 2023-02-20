@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using ServiceClient.Abstractions;
-using ServiceClient.Exceptions;
 using ServiceClient.Implements.SocketClient.DTOs;
 
 namespace ServiceClient.Implements;
@@ -25,8 +24,9 @@ internal class DeribitServiceClient : IServiceClient
             await deribitSocket.DisconnectAsync(cancellationToken);
             return true;
         }
-        catch 
+        catch (Exception ex)
         {
+            logger.LogError("An error occurs {error}", ex);
             return false;
         }
     }
@@ -36,31 +36,31 @@ internal class DeribitServiceClient : IServiceClient
         try
         {
             await deribitSocket.CheckAvailabilityAsync(cancellationToken);
-        }
-        catch
-        {
-            throw new UnavailableDeribitException();
-        }
+            await deribitSocket.InitializeAsync(cancellationToken);
+            await deribitSocket.SubscribeAsync(cancellationToken);
+            deribitSocket.OnBookReaded += DeribitSocket_OnBookReaded;
+            deribitSocket.OnTickerReaded += DeribitSocket_OnTickerReaded;
 
-        await deribitSocket.InitializeAsync(cancellationToken);
-        await deribitSocket.SubscribeAsync(cancellationToken);
-        deribitSocket.OnBookReaded += DeribitSocket_OnBookReaded;
-        deribitSocket.OnTickerReaded += DeribitSocket_OnTickerReaded;
-        await deribitSocket.ContinueReadAsync(cancellationToken);
+            await deribitSocket.ContinueReadAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("An error occurs {error}", ex);
+        }
     }
 
     private void DeribitSocket_OnTickerReaded(object? sender, TickerReadedEventArgs e)
     {
-        OnTickerReceived?.Invoke(this, new TickerReceivedEventArgs(e.Readed.Parameters?.Data, lastBook));
+        OnTickerReceived?.Invoke(this, new TickerReceivedEventArgs(e.Read.Parameters?.Data, lastBook));
     }
 
     private void DeribitSocket_OnBookReaded(object? sender, BookReadedEventArgs e)
     {
-        lastBook = e.Readed.Parameters?.Data;
+        lastBook = e.Read.Parameters?.Data;
     }
 
-    public Task IsDeribitAvailableAsync(CancellationToken cancellationToken)
+    public async Task IsDeribitAvailableAsync(CancellationToken cancellationToken)
     {
-        return  deribitSocket.CheckAvailabilityAsync(cancellationToken);
+        await deribitSocket.CheckAvailabilityAsync(cancellationToken);
     }
 }
