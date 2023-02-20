@@ -52,11 +52,11 @@ var cancellationToken = new CancellationTokenSource();
 
 var pipeline = host.Services.GetRequiredService<Pipeline>();
 
-void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+async void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
 {
     try
     {
-        pipeline.DisconnectAsync(cancellationToken.Token).Wait();
+        await pipeline.DisconnectAsync(cancellationToken.Token).ConfigureAwait(false);
         cancellationToken.Cancel();
         Console.CancelKeyPress -= Console_CancelKeyPress;
     }
