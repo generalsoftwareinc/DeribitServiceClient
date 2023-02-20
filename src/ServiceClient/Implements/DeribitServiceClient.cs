@@ -59,8 +59,8 @@ internal class DeribitServiceClient : IServiceClient
         lastBook = e.Read.Parameters?.Data;
     }
 
-    public async Task IsDeribitAvailableAsync(CancellationToken cancellationToken)
+    public Task IsDeribitAvailableAsync(CancellationToken cancellationToken)
     {
-        await deribitSocket.CheckAvailabilityAsync(cancellationToken);
+        return  deribitSocket.CheckAvailabilityAsync(cancellationToken);
     }
 }

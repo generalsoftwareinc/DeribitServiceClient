@@ -26,12 +26,11 @@ var host = Host.CreateDefaultBuilder()
         logging.AddSimpleConsole(options => options.SingleLine= true);
     })
     .ConfigureServices(services => {
-        services.AddSingleton<IConfiguration>(config);
         services.AddOptions<OutputOptions>()
                 .Bind(config.GetSection(nameof(OutputOptions)));
         services.AddLogging();
         services.AddServiceClient(config);
-        services.AddSingleton(_ => new Table().Centered());
+        services.AddSingleton(new Table().Centered());
         services.AddTransient(sp => AnsiConsole.Live(sp.GetRequiredService<Table>()));
         services.AddTransient<SpectreOutputPipeline>();
         services.AddTransient<LogOutputPipeline>();
@@ -47,7 +46,7 @@ var host = Host.CreateDefaultBuilder()
     })
     .Build();
 #endregion
-
+var logger = host.Services.GetRequiredService<ILogger<Program>>();
 // Create a command app of Spectre Console
 var cancellationToken = new CancellationTokenSource();
 
@@ -62,7 +61,7 @@ void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
         Console.CancelKeyPress -= Console_CancelKeyPress;
     }
     catch (Exception ex)  {
-        Console.WriteLine($"Error desconecting {ex.Message}");
+        logger.LogError($"Error desconecting {ex.Message}");
     }
     finally
     {

@@ -15,11 +15,6 @@ public static class ServiceCollection
         services.AddTransient<IServiceClient, DeribitServiceClient>();
         services.AddOptions<DeribitOptions>()
         .Bind(configuration.GetSection(nameof(DeribitOptions)))
-        .Validate(config =>
-        {
-            if (string.IsNullOrEmpty(config.ClientId) || string.IsNullOrEmpty(config.ClientSecret))
-                return false;
-            return true;
-        });
+        .ValidateDataAnnotations();
     }
 }

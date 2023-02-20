@@ -101,6 +101,7 @@ internal class DeribitSocketClient : IDeribitClient
     {
         await DisableHeartbeatAsync(token);
         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, token);
+        webSocket.Dispose();
     }
 
     public async Task CheckAvailabilityAsync(CancellationToken token)
