@@ -139,13 +139,14 @@ internal class DeribitSocketClient : IDeribitClient
         await SendAsync("public/auth", data, token);
     }
 
-    private Task SetHeartbeatAsync(CancellationToken token)
+    private async Task SetHeartbeatAsync(CancellationToken token)
     {
         var data = new
         {
             interval = deribitOptions.HeartBeatInterval
         };
-        return Task.WhenAll(SendAsync("public/set_heartbeat", data, token), ReadOneMessageAsync(webSocket, token));
+        await SendAsync("public/set_heartbeat", data, token);
+        await ReadOneMessageAsync(webSocket, token);
     }
 
     private async Task DisableHeartbeatAsync(CancellationToken token)
