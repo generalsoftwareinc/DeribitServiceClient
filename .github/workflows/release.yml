@@ -3,8 +3,8 @@ name: Compile and Publish .NET Release
 # Trigger the workflow only when a push is made to main with a version tag (format: v*.*.*)
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
 
 jobs:
   build:
