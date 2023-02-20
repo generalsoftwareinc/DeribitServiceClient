@@ -57,11 +57,11 @@ internal class DeribitSocketClient : IDeribitClient
             Parameters = data,
         };
         var jsonMessage = JsonSerializer.Serialize(request, jsonOptions);
-        var buffer = new byte[jsonMessage.Length];
+        var sendBuffer = new byte[jsonMessage.Length];
 
-        Encoding.Default.GetBytes(jsonMessage, 0, jsonMessage.Length, buffer, 0);
+        Encoding.Default.GetBytes(jsonMessage, 0, jsonMessage.Length, sendBuffer, 0);
 
-        return webSocket.SendAsync(buffer, WebSocketMessageType.Text, true, cancellationToken);
+        return webSocket.SendAsync(sendBuffer, WebSocketMessageType.Text, true, cancellationToken);
     }
 
     static private readonly byte[] readBuffer = new byte[readBufferSize];
@@ -93,8 +93,9 @@ internal class DeribitSocketClient : IDeribitClient
     private async Task<ActionResponse<T>?> ReadAsync<T>(CancellationToken token)
         where T : class
     {
-        var result = await ReadStringAsync(token);
-        return JsonSerializer.Deserialize<ActionResponse<T>>(result, jsonOptions);
+        var message = await ReadStringAsync(token);
+        message.TryDeserialize<ActionResponse<T>>(out var result);
+        return result;
     }
 
     public async Task DisconnectAsync(CancellationToken token)
@@ -190,11 +191,11 @@ internal class DeribitSocketClient : IDeribitClient
             var isBookMessage = message.Contains(BookChannel, StringComparison.CurrentCulture);
             var isTikerMessage = message.Contains(TickerChannel, StringComparison.CurrentCulture);
 
-            if (isBookMessage && TryDeserialize<BookResponse>(message, out var book))
+            if (isBookMessage && message.TryDeserialize<BookResponse>(out var book))
             {
                 OnBookReaded?.Invoke(this, new BookReadedEventArgs(book!));
             }
-            else if (isTikerMessage && TryDeserialize<TickerResponse>(message, out var ticker) )
+            else if (isTikerMessage && message.TryDeserialize<TickerResponse>(out var ticker) )
             {
                 OnTickerReaded?.Invoke(this, new TickerReadedEventArgs(ticker!));
             }
@@ -209,31 +210,10 @@ internal class DeribitSocketClient : IDeribitClient
         }
     }
 
-    private static bool TryDeserialize<T>(string message, out T? data)
-        where T : class
-    {
-        data = default;
-
-        if (string.IsNullOrEmpty(message))
-        {
-            return false;
-        }
-
-        try
-        {
-            data = JsonSerializer.Deserialize<T>(message);
-            return data != null;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private void ParseCredentials(string json)
+    private void ParseCredentials(string message)
     {
         refreshTokenTimer?.Dispose();
-        var credentials = JsonSerializer.Deserialize<ActionResponse<AuthResult>>(json, jsonOptions);
+        message.TryDeserialize<ActionResponse<AuthResult>>(out var credentials);
         Credentials = credentials?.Result;
         if (Credentials?.ExpiresIn != null)
         {
@@ -243,18 +223,12 @@ internal class DeribitSocketClient : IDeribitClient
         }
     }
 
-    static readonly JsonSerializerOptions jsonOptions = new()
-    {
-        PropertyNamingPolicy = new LowerCaseNamingPolicy(),
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
+    private static readonly StringBuilder jsonResult = new();
+    private static readonly ArraySegment<byte> buffer = WebSocket.CreateClientBuffer(readBufferSize, readBufferSize);
 
     async static Task ReceiveMessageAsync(ClientWebSocket ws, CancellationToken token)
     {
-        var buffer = WebSocket.CreateClientBuffer(1024, 1024);
         WebSocketReceiveResult taskResult;
-        var jsonResult = new StringBuilder();
-
         while (ws.State == WebSocketState.Open && !token.IsCancellationRequested)
         {
             jsonResult.Clear();
@@ -273,8 +247,9 @@ internal class DeribitSocketClient : IDeribitClient
         }
     }
 
-    class LowerCaseNamingPolicy : JsonNamingPolicy
+    static readonly JsonSerializerOptions jsonOptions = new()
     {
-        public override string ConvertName(string name) => name.ToLower();
-    }
+        PropertyNamingPolicy = new LowerCaseNamingPolicy(),
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 }
