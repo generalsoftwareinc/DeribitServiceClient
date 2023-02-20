@@ -16,6 +16,7 @@ public class ActionResponse<T> where T : class
     [JsonPropertyName("result")]
     public T? Result { get; set; }
 }
+
 public class SubscriptionResponse<T> : Response
 {
     [JsonPropertyName("params")]

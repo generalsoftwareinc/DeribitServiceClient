@@ -1,12 +1,11 @@
-﻿namespace ServiceClient.Implements.SocketClient.DTOs
-{
-    internal sealed class BookReadedEventArgs
-    {
-        public BookReadedEventArgs(BookResponse readed)
-        {
-            Readed = readed;
-        }
+﻿namespace ServiceClient.Implements.SocketClient.DTOs;
 
-        public BookResponse Readed { get; }
+internal sealed class BookReadedEventArgs
+{
+    public BookReadedEventArgs(BookResponse read)
+    {
+        Read= read;
     }
+
+    public BookResponse Read { get; }
 }

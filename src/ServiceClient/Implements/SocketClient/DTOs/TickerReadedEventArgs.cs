@@ -2,11 +2,11 @@
 {
     internal sealed class TickerReadedEventArgs
     {
-        public TickerReadedEventArgs(TickerResponse readed)
+        public TickerReadedEventArgs(TickerResponse read)
         {
-            Readed = readed;
+            Read = read;
         }
 
-        public TickerResponse Readed { get; }
+        public TickerResponse Read { get; }
     }
 }

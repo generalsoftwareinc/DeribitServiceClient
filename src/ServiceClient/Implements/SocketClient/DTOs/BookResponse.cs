@@ -33,18 +33,6 @@ public class BookData
     {
         var asks = string.Join("/", Asks.Select(a => $"{a[0]}, {a[1]}, {a[2]}"));
         var bids = string.Join("/", Bids.Select(a => $"{a[0]}, {a[1]}, {a[2]}"));
-        return $"Asks: {asks},Bids: {bids}";
+        return $"Asks: {asks}, Bids: {bids}";
     }
-}
-
-public class BidAskParameter
-{
-    [JsonPropertyOrder(0)]
-    public string BidAskAction { get; set; }
-
-    [JsonPropertyOrder(1)]
-    public decimal Price { get; set; }
-
-    [JsonPropertyOrder(2)]
-    public int Amount { get; set; }
 }

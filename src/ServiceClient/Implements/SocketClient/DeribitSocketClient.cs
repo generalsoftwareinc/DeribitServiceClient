@@ -2,7 +2,6 @@
 using ServiceClient.Abstractions;
 using ServiceClient.Implements.SocketClient.DTOs;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -19,9 +18,10 @@ internal class DeribitSocketClient : IDeribitClient
     public event EventHandler<BookReadedEventArgs>? OnBookReaded; 
     public event EventHandler<TickerReadedEventArgs>? OnTickerReaded;
     private Timer? refreshTokenTimer;
-    public static BlockingCollection<string> readMessageQueue = new BlockingCollection<string>();
+    static protected readonly BlockingCollection<string> readMessageQueue = new();
     
     public AuthResult? Credentials { get; protected set; }
+
     public DeribitSocketClient(IOptions<DeribitOptions> options)
     {
         deribitOptions = options.Value;
@@ -63,12 +63,15 @@ internal class DeribitSocketClient : IDeribitClient
 
         return webSocket.SendAsync(buffer, WebSocketMessageType.Text, true, cancellationToken);
     }
+
     static private readonly byte[] readBuffer = new byte[readBufferSize];
     static private readonly IEnumerable<WebSocketState> receiveValidStates = new[] { WebSocketState.Open, WebSocketState.CloseSent };
+    private readonly StringBuilder stringBuilder = new();
+    
     private async Task<string> ReadStringAsync(CancellationToken cancellationToken)
     {
-        StringBuilder stringBuilder = new();
         WebSocketReceiveResult response;
+        stringBuilder.Clear();
         do
         {
             if (!receiveValidStates.Contains(webSocket.State)) return string.Empty;
@@ -106,11 +109,12 @@ internal class DeribitSocketClient : IDeribitClient
         {
             await ConnectAsync(token);
         }
+
         await SendTestAsync(token);
         var result = await ReadAsync<object>(token);
         if (result?.Result == null)
         {
-            throw new Exception("Sorry, your configuration is not OK. Check and try again later.");
+            throw new NotSupportedException("Sorry, your configuration is not OK. Check and try again later.");
         }
     }
     public async Task InitializeAsync(CancellationToken token)
@@ -118,6 +122,7 @@ internal class DeribitSocketClient : IDeribitClient
         await AuthenticateAsync(token);
         await SetHeartbeatAsync(token);
     }
+
     private async Task AuthenticateAsync(CancellationToken token)
     {
         var data = new
@@ -151,20 +156,18 @@ internal class DeribitSocketClient : IDeribitClient
         await SendAsync("public/auth", data, token);
     }
 
-    public async Task SetHeartbeatAsync(CancellationToken token)
+    private Task SetHeartbeatAsync(CancellationToken token)
     {
         var data = new
         {
             interval = deribitOptions.HeartBeatInterval
         };
-        await SendAsync("public/set_heartbeat", data, token);
-        await ReadAsync<object>(token);
+        return SendAsync("public/set_heartbeat", data, token);
     }
 
-    public async Task DisableHeartbeatAsync(CancellationToken token)
+    private async Task DisableHeartbeatAsync(CancellationToken token)
     {
         await SendAsync("public/disable_heartbeat", new object(), token);
-        await ReadAsync<object>(token);
     }
 
     public async Task SubscribeAsync(CancellationToken token)
@@ -174,20 +177,7 @@ internal class DeribitSocketClient : IDeribitClient
             channels = new[] { BookChannel, TickerChannel }
         };
         await SendAsync("private/subscribe", data, token);
-        var channelsSubscribed = await ReadAsync<string[]>(token);
-
-        if (channelsSubscribed?.Result == null)
-            throw new Exception("Can't subscribe to the channels");
-
-        var notSubscribedChannels = data.channels
-            .Except(channelsSubscribed.Result)
-            .ToArray();
-
-        if (notSubscribedChannels.Any())
-        {
-            var channels = string.Join(", ", notSubscribedChannels);
-            throw new Exception($"Can't subscribe to the following channels: {channels}");
-        }
+        await ReadAsync<object>(token);
     }
 
     public async Task ContinueReadAsync(CancellationToken token)
@@ -195,9 +185,9 @@ internal class DeribitSocketClient : IDeribitClient
         _ = Task.Run(() => ReceiveMessageAsync(webSocket, token), token);
         while (!token.IsCancellationRequested)
         {
-            var message = readMessageQueue.Take();
-            var isBookMessage = message.IndexOf(BookChannel) >= 0;
-            var isTikerMessage = message.IndexOf(TickerChannel) >= 0;
+            var message = readMessageQueue.Take(token);
+            var isBookMessage = message.Contains(BookChannel, StringComparison.CurrentCulture);
+            var isTikerMessage = message.Contains(TickerChannel, StringComparison.CurrentCulture);
 
             if (isBookMessage)
             {
@@ -229,7 +219,7 @@ internal class DeribitSocketClient : IDeribitClient
     private void ParseCredentials(string json)
     {
         refreshTokenTimer?.Dispose();
-        var credentials = JsonSerializer.Deserialize<ActionResponse<AuthResult>>(json, jsonOptions); ;
+        var credentials = JsonSerializer.Deserialize<ActionResponse<AuthResult>>(json, jsonOptions);
         Credentials = credentials?.Result;
         if (Credentials?.ExpiresIn != null)
         {
@@ -239,7 +229,7 @@ internal class DeribitSocketClient : IDeribitClient
         }
     }
 
-    static JsonSerializerOptions jsonOptions = new JsonSerializerOptions
+    static readonly JsonSerializerOptions jsonOptions = new()
     {
         PropertyNamingPolicy = new LowerCaseNamingPolicy(),
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
@@ -264,7 +254,7 @@ internal class DeribitSocketClient : IDeribitClient
 
             if (jsonResult.Length > 0)
             {
-                readMessageQueue.Add(jsonResult.ToString());
+                readMessageQueue.Add(jsonResult.ToString(), token);
             }
         }
     }
