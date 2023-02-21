@@ -1,4 +1,4 @@
-﻿using ServiceClient.Implements.SocketClient.DTOs;
+﻿using ServiceClient.Implements.DTOs;
 
 namespace ServiceClient;
 

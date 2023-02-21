@@ -2,8 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using ServiceClient.Abstractions;
 using ServiceClient.Implements;
-using ServiceClient.Implements.SocketClient;
-using ServiceClient.Implements.SocketClient.DTOs;
+using ServiceClient.Implements.DTOs;
 
 namespace ServiceClient;
 
@@ -11,10 +10,10 @@ public static class ServiceCollection
 {
     public static void AddServiceClient(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddTransient<IDeribitClient, DeribitSocketClient>();
         services.AddTransient<IServiceClient, DeribitServiceClient>();
         services.AddOptions<DeribitOptions>()
-        .Bind(configuration.GetSection(nameof(DeribitOptions)))
-        .ValidateDataAnnotations();
+            .Bind(configuration.GetSection(nameof(DeribitOptions)))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
     }
 }

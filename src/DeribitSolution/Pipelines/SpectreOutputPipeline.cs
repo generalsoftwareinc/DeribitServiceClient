@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Options;
 using ServiceClient;
 using ServiceClient.Abstractions;
-using ServiceClient.Implements.SocketClient.DTOs;
+using ServiceClient.Implements.DTOs;
 using Spectre.Console;
 using System.Collections.ObjectModel;
 

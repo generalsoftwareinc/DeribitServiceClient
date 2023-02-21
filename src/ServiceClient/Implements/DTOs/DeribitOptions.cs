@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ServiceClient.Implements.SocketClient.DTOs;
+namespace ServiceClient.Implements.DTOs;
 
 public sealed class DeribitOptions
 {
@@ -13,9 +13,6 @@ public sealed class DeribitOptions
     [Required]
     [Range(1, 5000)]
     public int ConnectionTimeoutInMilliseconds { get; set; }
-    [Required]
-    [Range(1, 100)]
-    public int KeepAliveIntervalInSeconds { get; set; }
     [Required]
     public string InstrumentName { get; set; } = string.Empty;
     [Required]

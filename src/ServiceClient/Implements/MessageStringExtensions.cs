@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace ServiceClient.Implements.SocketClient
+namespace ServiceClient.Implements
 {
     internal static class MessageStringExtensions
     {

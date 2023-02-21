@@ -1,4 +1,4 @@
-﻿namespace ServiceClient.Implements.SocketClient.DTOs
+﻿namespace ServiceClient.Implements.DTOs
 {
     internal sealed class TickerReadedEventArgs
     {
