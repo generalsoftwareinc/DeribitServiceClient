@@ -69,7 +69,7 @@ As a team, we have set up a series of tasks that we carry over every day in orde
 
 &nbsp;
 
-Each iteration starts with a Planning meeting: The objective of this meeting is to choose the functionalities to implement and clear doubts the doubts that the project team may have. Likewise, it helps to align the client's expectations with the team’s understanding of the project. 
+Each iteration starts with a Planning meeting: The objective of this meeting is to choose the functionalities to implement and clear doubts that the project team may have. Likewise, it helps to align the client's expectations with the team’s understanding of the project. 
 
 &nbsp;
 
@@ -121,14 +121,18 @@ Besides, the team gave each of the effort tags a corresponding amount of hours.
 &nbsp;
 
 
-## How can I collaborate
+## How can I collaborate?
 
 You can expand the code base of this project. To contribute code to the project, you should: 
 
 1- Create a feature branch or a repository fork
+
 2- Commit all your changes to this branch (please notice we use semantic commits)
+
 3- Once your code is functional, make a pull request to main (recommendation: make your code to be reviewed and approved by at least 2 other team members)
 
-To make code contributions to the project, you need to create a feature branch, commit all of your changes to said branch (please notice we use semantic commits), once your code is functional, make a pull request to main, this request needs to be reviewed and approved by at least 2 team members.
+To make code contributions to the project, you need to create a feature branch, commit all of your changes to that branch (please notice we use semantic commits), once your code is functional, make a pull request to main, this request needs to be reviewed and approved by at least 2 team members.
+
+![image](https://user-images.githubusercontent.com/124935746/220482560-015f36b5-4bb7-49e3-9bb6-352f27ab8ad3.png)
 
 
