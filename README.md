@@ -3,19 +3,19 @@
 ## Getting started
 
 1- Download the Consoleapp-main.zip file, from [here](https://github.com/generalsoftwareinc/DeribitServiceClient/releases/download/main/Consoleapp-main.zip)
+
 2- Unzip the file.
+
 3- Open file appsettings.json in any text editor
 
 ### Settings details:
 
-Set the appropriate values of:
-ClientId and ClientSecret
+Set the appropriate values of: ClientId and ClientSecret
 
 You can create a new set of ClientId and ClientSecret, by registering and logging in https://test.deribit.com/. Visit the API documentation in https://docs.deribit.com/. 
 
-    "ClientId": "[Your client ID here]",
+    "ClientId": "[Your client ID here]",    
     "ClientSecret": "[Your client secret here]", 
-
     "WebSocketUrl": "wss://test.deribit.com/ws/api/v2",
 The default value of this setting is wss://test.deribit.com/ws/api/v2, which is the test environment of the Deribit API. If you want to connect to a different environment, you must set this value accordingly.
 
@@ -37,17 +37,24 @@ The default value of this setting is wss://test.deribit.com/ws/api/v2, which is 
 In this solution, the Console application provides the information for the BTC-PERPETUAL channel specifically.
 
 4- Once you have set the desired settings, save the appsettings.json.
+
 5- Run the ConsoleApp
+
   Method 1: Execute the ConsoleApp.exe file contained in the Consoleapp-main folder that you unzipped.
-  Method 2:
-      * Open the Windows PowerShell or any other system console application.
-      * Use the corresponding console command to move to the unzipped folder path.
-      * Execute the ConsoleApp.exe file.
+  
+  Method 2:  
+  &nbsp; * Open the Windows PowerShell or any other system console application.      
+  &nbsp; * Use the corresponding console command to move to the unzipped folder path.      
+  &nbsp; * Execute the ConsoleApp.exe file.
 
 Once the console is executed:
+
 1- The Deribit API availability is checked.
+
 2- The Heartbeat is set up.
+
 3- The channel specified in the settings is subscribed (the only channel supported so far is the BTC Perpetual).
+
 4- The upcoming ticker updates are written in the console.
 
 ### System requirements
