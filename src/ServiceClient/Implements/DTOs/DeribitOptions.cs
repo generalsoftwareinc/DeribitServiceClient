@@ -11,9 +11,6 @@ public sealed class DeribitOptions
     [Required]
     public string WebSocketUrl { get; set; } = string.Empty;
     [Required]
-    [Range(1, 5000)]
-    public int ConnectionTimeoutInMilliseconds { get; set; }
-    [Required]
     public string InstrumentName { get; set; } = string.Empty;
     [Required]
     public string TickerInterval { get; set; } = string.Empty;
