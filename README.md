@@ -2,6 +2,65 @@
 
 ## Getting started
 
+1- Download the Consoleapp-main.zip file, from https://github.com/generalsoftwareinc/DeribitServiceClient/releases/download/main/Consoleapp-main.zip 
+2- Unzip the file.
+3- Open file appsettings.json in any text editor
+
+### Settings details:
+
+Set the appropriate values of:
+ClientId
+ClientSecret
+
+You can create a new set of ClientId and ClientSecret, by registering and logging in https://test.deribit.com/. Visit the API documentation in https://docs.deribit.com/. 
+
+    "ClientId": "[Your client ID here]",
+    "ClientSecret": "[Your client secret here]", 
+
+    "WebSocketUrl": "wss://test.deribit.com/ws/api/v2",
+The default value of this setting is wss://test.deribit.com/ws/api/v2, which is the test environment of the Deribit API. If you want to connect to a different environment, you must set this value accordingly.
+
+
+    "ConnectionTimeoutInMilliseconds": 5000,
+Time range in ms, how long to wait before reconnecting if no message comes from server.
+
+    "KeepAliveIntervalInSeconds": 300,
+    Websocket protocol keep-alive interval (in seconds). If the server doesn’t get any package after this time interval the socket connection is closed.
+
+    "InstrumentName": "BTC-PERPETUAL",
+    The instrument to be used in the channel subscription. Currently this is the only instrument allowed
+
+    "TickerInterval": "raw",
+
+
+    "BookInterval": "raw",
+    Ticker and Book interval: Is the frequency of notifications. Currently this is the only interval allowed.
+
+
+    "HeartBeatInterval": 30
+    Interval (in seconds) to configure the heartbeats
+
+
+In this solution, the Console application provides the information for the BTC-PERPETUAL channel specifically.
+
+4- Once you have set the desired settings, save the appsettings.json.
+5- Run the ConsoleApp
+  Method 1: Execute the ConsoleApp.exe file contained in the Consoleapp-main folder that you unzipped.
+  Method 2:
+      * Open the Windows PowerShell or any other system console application.
+      * Use the corresponding console command to move to the unzipped folder path.
+      * Execute the ConsoleApp.exe file.
+
+Once the console is executed:
+1- The Deribit API availability is checked.
+2- The Heartbeat is set up.
+3- The channel specified in the settings is subscribed (the only channel supported so far is the BTC Perpetual).
+4- The upcoming ticker updates are written in the console.
+
+### System requirements
+  * .Net 7
+  * Microsoft Windows 
+
 ## How we work? 
 
 ### Team rituals:
@@ -62,4 +121,14 @@ Besides, the team gave each of the effort tags a corresponding amount of hours.
 &nbsp;
 
 
-## How can I collaborate (Git checklist)
+## How can I collaborate
+
+You can expand the code base of this project. To contribute code to the project, you should: 
+
+1- Create a feature branch
+2- Commit all your changes to this branch (please notice we use semantic commits)
+3- Once your code is functional, make a pull request to main (recommendation: make your code to be reviewed and approved by at least 2 other team members)
+
+To make code contributions to the project, you need to create a feature branch, commit all of your changes to said branch (please notice we use semantic commits), once your code is functional, make a pull request to main, this request needs to be reviewed and approved by at least 2 team members.
+
+
