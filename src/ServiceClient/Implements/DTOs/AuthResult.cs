@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace ServiceClient.Implements.SocketClient.DTOs;
+namespace ServiceClient.Implements.DTOs;
 
 internal class AuthResult
 {

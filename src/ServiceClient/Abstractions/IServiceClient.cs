@@ -2,7 +2,7 @@
 
 public interface IServiceClient
 {
-    Task IsDeribitAvailableAsync(CancellationToken cancellationToken);
+    Task ConnectAsync(CancellationToken cancellationToken);
     Task RunAsync(CancellationToken cancellationToken);
     Task DisconnectAsync(CancellationToken cancellationToken);
 

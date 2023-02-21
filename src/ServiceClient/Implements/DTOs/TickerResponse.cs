@@ -1,4 +1,4 @@
-﻿namespace ServiceClient.Implements.SocketClient.DTOs;
+﻿namespace ServiceClient.Implements.DTOs;
 using System.Text.Json.Serialization;
 
 public class TickerResponse : SubscriptionResponse<SubscriptionParameters<TickerData>>
