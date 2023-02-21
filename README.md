@@ -2,15 +2,14 @@
 
 ## Getting started
 
-1- Download the Consoleapp-main.zip file, from https://github.com/generalsoftwareinc/DeribitServiceClient/releases/download/main/Consoleapp-main.zip 
+1- Download the Consoleapp-main.zip file, from [here](https://github.com/generalsoftwareinc/DeribitServiceClient/releases/download/main/Consoleapp-main.zip)
 2- Unzip the file.
 3- Open file appsettings.json in any text editor
 
 ### Settings details:
 
 Set the appropriate values of:
-ClientId
-ClientSecret
+ClientId and ClientSecret
 
 You can create a new set of ClientId and ClientSecret, by registering and logging in https://test.deribit.com/. Visit the API documentation in https://docs.deribit.com/. 
 
@@ -19,10 +18,6 @@ You can create a new set of ClientId and ClientSecret, by registering and loggin
 
     "WebSocketUrl": "wss://test.deribit.com/ws/api/v2",
 The default value of this setting is wss://test.deribit.com/ws/api/v2, which is the test environment of the Deribit API. If you want to connect to a different environment, you must set this value accordingly.
-
-
-    "ConnectionTimeoutInMilliseconds": 5000,
-Time range in ms, how long to wait before reconnecting if no message comes from server.
 
     "KeepAliveIntervalInSeconds": 300,
     Websocket protocol keep-alive interval (in seconds). If the server doesn’t get any package after this time interval the socket connection is closed.
@@ -34,7 +29,6 @@ Time range in ms, how long to wait before reconnecting if no message comes from 
 
     "BookInterval": "raw",
     Ticker and Book interval: Is the frequency of notifications. Currently this is the only interval allowed.
-
 
     "HeartBeatInterval": 30
     Interval (in seconds) to configure the heartbeats
@@ -124,7 +118,7 @@ Besides, the team gave each of the effort tags a corresponding amount of hours.
 
 You can expand the code base of this project. To contribute code to the project, you should: 
 
-1- Create a feature branch
+1- Create a feature branch or a repository fork
 2- Commit all your changes to this branch (please notice we use semantic commits)
 3- Once your code is functional, make a pull request to main (recommendation: make your code to be reviewed and approved by at least 2 other team members)
 
