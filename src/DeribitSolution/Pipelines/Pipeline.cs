@@ -30,7 +30,6 @@ internal abstract class Pipeline
         WritePipelineStep("Checking Deribit API Availability");
         try
         {
-            await client.ConnectAsync(cancellationToken);
             PreInitializeHook();
             client.OnTickerReceived += Client_OnTickerReceived;
             await client.RunAsync(cancellationToken);

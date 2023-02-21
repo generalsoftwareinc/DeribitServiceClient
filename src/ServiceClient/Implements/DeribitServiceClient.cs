@@ -3,58 +3,60 @@ using Microsoft.Extensions.Options;
 using ServiceClient.Abstractions;
 using ServiceClient.Implements.DTOs;
 using System.Collections.Concurrent;
+using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Websocket.Client;
+
 namespace ServiceClient.Implements;
 
 internal class DeribitServiceClient : IServiceClient
 {
-    private int nextId = 0;
+    private const string EndMessage = "END";
+    private static int nextId = 0;
     private readonly DeribitOptions deribitOptions;
-    private readonly ILogger<DeribitServiceClient> logger;
     private BookData? lastBook;
-    private readonly WebsocketClient ws;
     private Timer? refreshTokenTimer;
     static protected readonly BlockingCollection<string> readMessageQueue = new();
+    static protected readonly BlockingCollection<string> sendMessageQueue = new();
     public AuthResult? Credentials { get; protected set; }
 
     public DeribitServiceClient(IOptions<DeribitOptions> options, ILogger<DeribitServiceClient> logger)
     {
         deribitOptions = options.Value;
-        this.logger = logger;
-        ws = new WebsocketClient(new Uri(deribitOptions.WebSocketUrl))
-        {
-            ReconnectTimeout = TimeSpan.FromMilliseconds(deribitOptions.ConnectionTimeoutInMilliseconds),
-            IsReconnectionEnabled = true,
-        };
-        
     }
 
     public event TickerReceivedEventHandler? OnTickerReceived;
-    public async Task DisconnectAsync(CancellationToken cancellationToken)
+    public Task DisconnectAsync(CancellationToken cancellationToken)
     {
-        await ws.Stop(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, string.Empty);
+        sendMessageQueue.Add(EndMessage);
+        return Task.CompletedTask;
     }
 
-    public async Task RunAsync(CancellationToken cancellationToken)
+    protected ClientWebSocket WsFactory() => new(){ 
+        Options = 
+        {
+            KeepAliveInterval = TimeSpan.Zero
+        }
+    };
+
+    public Task RunAsync(CancellationToken cancellationToken)
     {
-        await CheckDeribitAvailableAsync();
-        await InitializeAsync();
-        await SubscribeAsync();
-        while (ws.IsRunning && !cancellationToken.IsCancellationRequested)
+        var socketWorker = Task.Run(() => DeribitSocketWorker(deribitOptions, cancellationToken), cancellationToken);
+        sendMessageQueue.Add(CheckDeribitAvailable(), cancellationToken);
+        sendMessageQueue.Add(Authenticate(deribitOptions), cancellationToken);
+        sendMessageQueue.Add(Subscribe(deribitOptions), cancellationToken);
+        sendMessageQueue.Add(SetHeartBeat(), cancellationToken);
+
+        while (!cancellationToken.IsCancellationRequested)
         {
             var message = readMessageQueue.Take(cancellationToken);
             ParseMessage(message);
         }
+
+        return socketWorker;
     }
 
-    private static void OnMessage(ResponseMessage response)
-    {
-        var message = response.Text;
-        if (string.IsNullOrEmpty(message)) return;
-        readMessageQueue.Add(message);
-    }
     private void ParseMessage(string message) { 
         var isBookMessage = message.Contains(BookChannel, StringComparison.CurrentCulture);
         var isTikerMessage = message.Contains(TickerChannel, StringComparison.CurrentCulture);
@@ -72,7 +74,7 @@ internal class DeribitServiceClient : IServiceClient
         }
         else if (message.Contains("test_request"))
         {
-            ws.Send(BuildMessage("public/test", new object()));
+            sendMessageQueue.Add(BuildMessage("public/test", new object()));
         }
         else if (message.Contains("refresh_token"))
         {
@@ -80,12 +82,12 @@ internal class DeribitServiceClient : IServiceClient
         }
     }
 
-    public Task CheckDeribitAvailableAsync()
+    private string CheckDeribitAvailable()
     {
-        return ws.SendInstant(BuildMessage("public/test", new object()));
+        return BuildMessage("public/test", new object());
     }
 
-    public async Task InitializeAsync()
+    public static string Authenticate(DeribitOptions deribitOptions)
     {
         var data = new
         {
@@ -93,17 +95,24 @@ internal class DeribitServiceClient : IServiceClient
             client_id = deribitOptions.ClientId,
             client_secret = deribitOptions.ClientSecret,
         };
-        await ws.SendInstant(BuildMessage("public/auth", data));
-        await ws.SendInstant(BuildMessage("private/set_heartbeat", data));
+        return BuildMessage("public/auth", data);
     }
 
-    private async Task SubscribeAsync()
+    private static string Subscribe(DeribitOptions deribitOptions)
     {
         var data = new
         {
-            channels = new[] { BookChannel, TickerChannel }
+            channels = new[] {
+                $"book.{deribitOptions.InstrumentName}.{deribitOptions.BookInterval}",
+                $"ticker.{deribitOptions.InstrumentName}.{deribitOptions.TickerInterval}"
+}
         };
-        await ws.SendInstant(BuildMessage("private/subscribe", data));
+        return BuildMessage("private/subscribe", data);
+    }
+
+    private static string SetHeartBeat()
+    {
+        return BuildMessage("private/set_heartbeat", new object());
     }
     protected string BookChannel => $"book.{deribitOptions.InstrumentName}.{deribitOptions.BookInterval}";
     protected string TickerChannel => $"ticker.{deribitOptions.InstrumentName}.{deribitOptions.TickerInterval}";
@@ -128,6 +137,8 @@ internal class DeribitServiceClient : IServiceClient
         refreshTokenTimer?.Dispose();
         message.TryDeserialize<ActionResponse<AuthResult>>(out var credentials);
         Credentials = credentials?.Result;
+        sendMessageQueue.Add(SetHeartBeat());
+
         if (Credentials?.ExpiresIn != null)
         {
             refreshTokenTimer = new Timer(Timer_Elapsed);
@@ -144,9 +155,9 @@ internal class DeribitServiceClient : IServiceClient
             grant_type = "refresh_token",
             refresh_token = Credentials!.RefreshToken,
         };
-        ws.Send(BuildMessage("public/auth", data));
+        sendMessageQueue.Add(BuildMessage("public/auth", data));
     }
-    public string BuildMessage<T>(string method, T data)
+    public static string BuildMessage<T>(string method, T data)
     {
         var request = new Request<T>
         {
@@ -158,17 +169,34 @@ internal class DeribitServiceClient : IServiceClient
        return JsonSerializer.Serialize(request, jsonOptions);
     }
 
-    public Task ConnectAsync(CancellationToken cancellationToken)
-    {
-        ws.MessageReceived.Subscribe(OnMessage);
-        ws.DisconnectionHappened.Subscribe(info => logger.LogWarning("Disconnection: {t}, {d}", info.Type, info.Exception?.Message));
-        ws.ReconnectionHappened.Subscribe(info => logger.LogWarning("Reconnection: {t}", info.Type));
-        return ws.Start();
-    }
-
     static readonly JsonSerializerOptions jsonOptions = new()
     {
         PropertyNamingPolicy = new LowerCaseNamingPolicy(),
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+
+    static async Task DeribitSocketWorker(DeribitOptions deribitOptions, CancellationToken token)
+    {
+        using var ws = new WebsocketClient(new Uri(deribitOptions.WebSocketUrl));
+        ws.MessageReceived.Subscribe(info => readMessageQueue.Add(info.Text));
+        ws.ReconnectionHappened.Subscribe(info => { 
+            if (info.Type != ReconnectionType.Initial)
+            {
+                sendMessageQueue.Add(Authenticate(deribitOptions));
+                sendMessageQueue.Add(Subscribe(deribitOptions));
+                sendMessageQueue.Add(SetHeartBeat());
+            }
+        });
+        await ws.Start();
+        while(!token.IsCancellationRequested) 
+        {
+            var message = sendMessageQueue.Take(token);
+            if (message == EndMessage)
+            {
+                await ws.Stop(WebSocketCloseStatus.NormalClosure, message);
+                break;
+            }
+            await ws.SendInstant(message);
+        }
+    }
 }
