@@ -31,8 +31,8 @@ public class BookData
 
     public override string ToString()
     {
-        var asks = string.Join("/", Asks.Select(a => $"{a[0]}, {a[1]}, {a[2]}"));
-        var bids = string.Join("/", Bids.Select(a => $"{a[0]}, {a[1]}, {a[2]}"));
+        var asks = string.Join("/", Asks.Select(a => string.Join(", ", a.Select(i => i.ToString()))));
+        var bids = string.Join("/", Bids.Select(a => string.Join(", ", a.Select(i => i.ToString()))));
         return $"Asks: {asks}, Bids: {bids}";
     }
 }
