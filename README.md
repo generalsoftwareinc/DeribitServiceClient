@@ -53,7 +53,7 @@ Once the console is executed:
 
 2- The Heartbeat is set up.
 
-3- The channel specified in the settings is subscribed (the only channel supported so far is the BTC Perpetual).
+3- The app subscribes to the corresponding channels (the only instrument supported is BTC-Perpetual).
 
 4- The upcoming ticker updates are written in the console.
 
@@ -130,8 +130,6 @@ You can expand the code base of this project. To contribute code to the project,
 2- Commit all your changes to this branch (please notice we use semantic commits)
 
 3- Once your code is functional, make a pull request to main (recommendation: make your code to be reviewed and approved by at least 2 other team members)
-
-To make code contributions to the project, you need to create a feature branch, commit all of your changes to that branch (please notice we use semantic commits), once your code is functional, make a pull request to main, this request needs to be reviewed and approved by at least 2 team members.
 
 ![image](https://user-images.githubusercontent.com/124935746/220482560-015f36b5-4bb7-49e3-9bb6-352f27ab8ad3.png)
 
