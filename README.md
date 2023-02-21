@@ -32,7 +32,6 @@ Time range in ms, how long to wait before reconnecting if no message comes from 
 
     "TickerInterval": "raw",
 
-
     "BookInterval": "raw",
     Ticker and Book interval: Is the frequency of notifications. Currently this is the only interval allowed.
 
