@@ -6,12 +6,18 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace ServiceClient.Implements
+namespace Deribit.ServiceClient.Serialization
 {
     internal static class MessageStringExtensions
     {
+        private static readonly JsonSerializerOptions jsonOptions = new()
+        {
+            PropertyNamingPolicy = new LowerCaseJsonNamingPolicy(),
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+
         public static bool TryDeserialize<T>(this string message, out T? data)
-        where T : class
+            where T : class
         {
             data = default;
 
@@ -30,16 +36,5 @@ namespace ServiceClient.Implements
                 return false;
             }
         }
-
-        static readonly JsonSerializerOptions jsonOptions = new()
-        {
-            PropertyNamingPolicy = new LowerCaseNamingPolicy(),
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
-    }
-
-    class LowerCaseNamingPolicy : JsonNamingPolicy
-    {
-        public override string ConvertName(string name) => name.ToLower();
     }
 }

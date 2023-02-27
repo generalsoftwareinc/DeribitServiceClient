@@ -1,7 +1,10 @@
-﻿namespace ServiceClient.Abstractions;
+﻿namespace Deribit.ServiceClient.Abstractions;
 
-public interface IServiceClient
+public interface IDeribitApiClient
 {
+    long TickerMessagesCount { get; }
+    long BookMessagesCount { get; }
+
     Task RunAsync(CancellationToken cancellationToken);
     Task DisconnectAsync(CancellationToken cancellationToken);
 

@@ -1,13 +1,15 @@
 ﻿using Microsoft.Extensions.Logging;
 using ServiceClient;
-using ServiceClient.Abstractions;
+using Deribit.ServiceClient.Serialization;
+using Deribit.ServiceClient.Abstractions;
+using Deribit.ServiceClient;
 
 namespace ConsoleApp.Pipelines;
 
 internal class LogOutputPipeline : Pipeline
 {
     private readonly ILogger<Pipeline> logger;
-    public LogOutputPipeline(IServiceClient client, ILogger<Pipeline> logger) : base(client)
+    public LogOutputPipeline(IDeribitApiClient client, ILogger<Pipeline> logger) : base(client)
     {
         this.logger = logger;
     }

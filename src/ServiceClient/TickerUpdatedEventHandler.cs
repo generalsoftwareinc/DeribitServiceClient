@@ -1,6 +1,7 @@
-﻿using ServiceClient.Implements.DTOs;
+﻿using Deribit.ServiceClient.DTOs.Book;
+using Deribit.ServiceClient.DTOs.Ticker;
 
-namespace ServiceClient;
+namespace Deribit.ServiceClient;
 
 
 public delegate void TickerReceivedEventHandler(object? sender, TickerReceivedEventArgs e);

@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ServiceClient;
+using Deribit.ServiceClient;
 using Spectre.Console;
 
 #region Configuration
@@ -29,7 +29,7 @@ var host = Host.CreateDefaultBuilder()
         services.AddOptions<OutputOptions>()
                 .Bind(config.GetSection(nameof(OutputOptions)));
         services.AddLogging();
-        services.AddServiceClient(config);
+        services.AddDeribitApiClient(config);
         services.AddSingleton(new Table().Centered());
         services.AddTransient(sp => AnsiConsole.Live(sp.GetRequiredService<Table>()));
         services.AddTransient<SpectreOutputPipeline>();
@@ -61,7 +61,7 @@ async void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
         Console.CancelKeyPress -= Console_CancelKeyPress;
     }
     catch (Exception ex)  {
-        logger.LogError($"Error desconecting {ex.Message}");
+        logger.LogError("Error disconnecting {Message}", ex.Message);
     }
     finally
     {

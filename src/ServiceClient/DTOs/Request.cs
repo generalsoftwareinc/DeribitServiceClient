@@ -1,9 +1,10 @@
-﻿using ServiceClient.Abstractions;
+﻿using Deribit.ServiceClient.Abstractions;
 using System.Text.Json.Serialization;
 
-namespace ServiceClient.Implements
+namespace Deribit.ServiceClient.DTOs
 {
-    internal class Request<T> : IRequest<T>
+    internal record Request<T> : IRequest<T>
+        where T : class
     {
         public long Id { get; set; }
 
@@ -13,6 +14,6 @@ namespace ServiceClient.Implements
         public string Method { get; set; } = "";
 
         [JsonPropertyName("params")]
-        public T? Parameters { get; set; } = default(T);
+        public T? Parameters { get; set; } = default;
     }
 }
