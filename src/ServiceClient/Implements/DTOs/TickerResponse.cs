@@ -8,16 +8,16 @@ public class TickerResponse : SubscriptionResponse<SubscriptionParameters<Ticker
 public class TickerData
 {
     [JsonPropertyName("ask_iv")]
-    public double AskImpliedVolatility { get; set; }
+    public double? AskImpliedVolatility { get; set; }
 
     [JsonPropertyName("best_ask_amount")]
-    public double BestAskAmount { get; set; }
+    public double? BestAskAmount { get; set; }
 
     [JsonPropertyName("best_ask_price")]
     public double? BestAskPrice { get; set; }
 
     [JsonPropertyName("best_bid_amount")]
-    public double BestBidAmount { get; set; }
+    public double? BestBidAmount { get; set; }
 
     [JsonPropertyName("best_bid_price")]
     public double? BestBidPrice { get; set; }
@@ -32,10 +32,10 @@ public class TickerData
     public double? DeliveryPrice { get; set; }
 
     [JsonPropertyName("estimated_delivery_price")]
-    public double EstimatedDeliveryPrice { get; set; }
+    public double? EstimatedDeliveryPrice { get; set; }
 
     [JsonPropertyName("funding_8h")]
-    public double Funding8h { get; set; }
+    public double? Funding8h { get; set; }
 
     [JsonPropertyName("greeks")]
     public object? Greeks { get; set; }
@@ -50,25 +50,25 @@ public class TickerData
     public double? InterestRate { get; set; }
 
     [JsonPropertyName("last_price")]
-    public double LastPrice { get; set; }
+    public double? LastPrice { get; set; }
 
     [JsonPropertyName("mark_iv")]
     public double? MarkIv { get; set; }
 
     [JsonPropertyName("mark_price")]
-    public double MarkPrice { get; set; }
+    public double? MarkPrice { get; set; }
 
     [JsonPropertyName("max_price")]
-    public double MaxPrice { get; set; }
+    public double? MaxPrice { get; set; }
 
     [JsonPropertyName("min_price")]
-    public double MinPrice { get; set; }
+    public double? MinPrice { get; set; }
 
     [JsonPropertyName("open_interest")]
-    public double OpenInterest { get; set; }
+    public double? OpenInterest { get; set; }
 
     [JsonPropertyName("settlement_price")]
-    public double SettlementPrice { get; set; }
+    public double? SettlementPrice { get; set; }
 
     [JsonPropertyName("state")]
     public string State { get; set; } = string.Empty;
@@ -94,16 +94,16 @@ public class TickerData
 public class TickerStats
 {
     [JsonPropertyName("high")]
-    public double HighestPrice { get; set; }
+    public double? HighestPrice { get; set; }
 
     [JsonPropertyName("low")]
-    public double LowestPrice { get; set; }
+    public double? LowestPrice { get; set; }
 
     [JsonPropertyName("price_change")]
     public double? PriceChange { get; set; }
 
     [JsonPropertyName("volume")]
-    public double Volume { get; set; }
+    public double? Volume { get; set; }
 
     [JsonPropertyName("volume_usd")]
     public double? VolumeUsd { get; set; }
