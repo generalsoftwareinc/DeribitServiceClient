@@ -21,7 +21,7 @@ internal class DeribitServiceClient : IServiceClient
     static protected readonly BlockingCollection<string> sendMessageQueue = new();
     public AuthResult? Credentials { get; protected set; }
 
-    public DeribitServiceClient(IOptions<DeribitOptions> options, ILogger<DeribitServiceClient> logger)
+    public DeribitServiceClient(IOptions<DeribitOptions> options)
     {
         deribitOptions = options.Value;
     }
@@ -32,13 +32,6 @@ internal class DeribitServiceClient : IServiceClient
         sendMessageQueue.Add(EndMessage);
         return Task.CompletedTask;
     }
-
-    protected ClientWebSocket WsFactory() => new(){ 
-        Options = 
-        {
-            KeepAliveInterval = TimeSpan.Zero
-        }
-    };
 
     public Task RunAsync(CancellationToken cancellationToken)
     {
@@ -82,7 +75,7 @@ internal class DeribitServiceClient : IServiceClient
         }
     }
 
-    private string CheckDeribitAvailable()
+    private static string CheckDeribitAvailable()
     {
         return BuildMessage("public/test", new object());
     }
