@@ -18,10 +18,16 @@ namespace Deribit.ServiceClient;
 
 internal partial class DeribitApiClient
 {
+    private static readonly object EmptyObject = new();
+
     protected string BookChannel => $"book.{options.InstrumentName}.{options.BookInterval}";
     protected string TickerChannel => $"ticker.{options.InstrumentName}.{options.TickerInterval}";
 
-    private static readonly object EmptyObject = new();
+    public long TickerMessagesCount { get; private set; }
+    public long BookMessagesCount { get; private set; }
+    public long SubscriptionMessagesCount { get; private set; }
+    public long HeartBeatMessagesCount { get; private set; }
+    public long TokenRefreshMessagesCount { get; private set; }
 
     private string GetTestRequestMessage()
     {
@@ -65,6 +71,7 @@ internal partial class DeribitApiClient
         // if it is a subscription response
         if (!isBookMessage && !isTikerMessage && message.Contains("\"result\":[\"") && message.TryDeserialize<ActionResponse<string[]>>(out var subResponse))
         {
+            SubscriptionMessagesCount++;
             HandleChannelSubscriptionResponse(subResponse!.Result);
         }
         // if it is a book message
@@ -82,11 +89,13 @@ internal partial class DeribitApiClient
         // if the server asked for a heartbeat call
         else if (message.Contains("test_request"))
         {
+            HeartBeatMessagesCount++;
             sendMessageQueue.Add(GetTestRequestMessage());
         }
         // if it is an auth response
         else if (message.Contains("refresh_token"))
         {
+            TokenRefreshMessagesCount++;
             HandleAuthResponse(message);
         }
     }
