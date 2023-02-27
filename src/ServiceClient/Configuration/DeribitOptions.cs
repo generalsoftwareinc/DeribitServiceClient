@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ServiceClient.Implements.DTOs;
+namespace Deribit.ServiceClient.Configuration;
 
-public sealed class DeribitOptions
+public sealed record DeribitOptions
 {
     [Required]
     public string ClientId { get; set; } = string.Empty;

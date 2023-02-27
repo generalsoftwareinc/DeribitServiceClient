@@ -1,8 +1,9 @@
 ﻿using ConsoleApp.DTOs;
+using Deribit.ServiceClient.DTOs.Book;
+using Deribit.ServiceClient.DTOs.Ticker;
 using Microsoft.Extensions.Options;
-using ServiceClient;
-using ServiceClient.Abstractions;
-using ServiceClient.Implements.DTOs;
+using Deribit.ServiceClient;
+using Deribit.ServiceClient.Abstractions;
 using Spectre.Console;
 using System.Collections.ObjectModel;
 
@@ -15,7 +16,7 @@ internal class SpectreOutputPipeline : Pipeline
     private readonly Table table;
     private readonly LiveDisplay liveTable;
 
-    public SpectreOutputPipeline(IServiceClient client, IOptions<OutputOptions> options, Table table, LiveDisplay liveTable) : base(client)
+    public SpectreOutputPipeline(IDeribitApiClient client, IOptions<OutputOptions> options, Table table, LiveDisplay liveTable) : base(client)
     {
         outputOptions = options.Value;
         this.table = table;

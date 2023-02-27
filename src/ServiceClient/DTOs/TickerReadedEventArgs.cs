@@ -1,4 +1,6 @@
-﻿namespace ServiceClient.Implements.DTOs
+﻿using Deribit.ServiceClient.DTOs.Ticker;
+
+namespace Deribit.ServiceClient.DTOs
 {
     internal sealed class TickerReadedEventArgs
     {

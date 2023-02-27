@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace ServiceClient.Abstractions
+namespace Deribit.ServiceClient.Abstractions
 {
     public interface IRequest<T>
     {

@@ -1,14 +1,16 @@
 ﻿using ServiceClient;
-using ServiceClient.Abstractions;
+using Deribit.ServiceClient.Serialization;
 using ServiceClient.Exceptions;
+using Deribit.ServiceClient.Abstractions;
+using Deribit.ServiceClient;
 
 namespace ConsoleApp.Pipelines;
 
 internal abstract class Pipeline
 {
-    private readonly IServiceClient client;
+    private readonly IDeribitApiClient client;
 
-    protected Pipeline(IServiceClient client)
+    protected Pipeline(IDeribitApiClient client)
     {
         this.client = client;
     }
@@ -39,6 +41,10 @@ internal abstract class Pipeline
             WritePipelineStep(ex.Message);
         }
         catch (NotSupportedException ex)
+        {
+            WritePipelineStep(ex.Message);
+        }
+        catch (OperationCanceledException ex)
         {
             WritePipelineStep(ex.Message);
         }

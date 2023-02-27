@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ServiceClient\ServiceClient.csproj" />
+    <ProjectReference Include="..\ServiceClient\Deribit.ServiceClient.csproj" />
   </ItemGroup>
 
   <ItemGroup>
