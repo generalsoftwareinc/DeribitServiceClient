@@ -41,9 +41,6 @@ internal partial class DeribitApiClient : IDeribitApiClient
         this.requestParameterFactory = new RequestParameterFactory(); // TODO should be injected
     }
 
-    public long TickerMessagesCount { get; private set; }
-    public long BookMessagesCount { get; private set; }
-
     public event TickerReceivedEventHandler? OnTickerReceived;
 
     public Task DisconnectAsync(CancellationToken cancellationToken)
