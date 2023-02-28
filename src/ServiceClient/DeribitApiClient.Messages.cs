@@ -90,7 +90,7 @@ internal partial class DeribitApiClient
         else if (message.Contains("test_request"))
         {
             HeartBeatMessagesCount++;
-            sendMessageQueue.Add(GetTestRequestMessage());
+            EnqueueOutgoingMessage(GetTestRequestMessage(), CancellationToken.None);
         }
         // if it is an auth response
         else if (message.Contains("refresh_token"))
@@ -128,7 +128,7 @@ internal partial class DeribitApiClient
 
         Credentials = credentials.Result;
 
-        sendMessageQueue.Add(GetSetHeartBeatMessage());
+        EnqueueOutgoingMessage(GetSetHeartBeatMessage(), CancellationToken.None);
 
         var runAtSec = Credentials!.ExpiresIn! - 300; // run 5 minutes before the expiration
 
