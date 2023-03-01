@@ -28,6 +28,8 @@ internal partial class DeribitApiClient : IDeribitApiClient
     
     public AuthResult? Credentials { get; protected set; }
 
+    public bool IsRunning { get; private set; }
+
     public DeribitApiClient(IOptions<DeribitOptions> deribitOptions, ILogger<DeribitApiClient> logger)
     {
         this.options = deribitOptions.Value;
@@ -43,7 +45,8 @@ internal partial class DeribitApiClient : IDeribitApiClient
 
     public Task DisconnectAsync(CancellationToken cancellationToken)
     {
-        EnqueueOutgoingMessage(EndMessage, CancellationToken.None);
+        if (this.IsRunning)
+            EnqueueOutgoingMessage(EndMessage, CancellationToken.None);
 
         return Task.CompletedTask;
     }
@@ -58,30 +61,51 @@ internal partial class DeribitApiClient : IDeribitApiClient
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        // create the socket worker
-        var socketWorker = Task.Run(() => DeribitSocketWorker(this.options, cancellationToken), cancellationToken);
+        if (this.IsRunning)
+            throw new InvalidOperationException("Already running.");
 
-        // send messages to connect, auth and subscribe
-        EnqueueOutgoingMessage(GetTestRequestMessage(), cancellationToken);
-
-        // wait until incoming messages become available
-        while (await incomingQueue.Reader.WaitToReadAsync(cancellationToken))
+        try
         {
-            // take the next available incoming message
-            while (incomingQueue.Reader.TryRead(out string? message))
+            this.IsRunning = true;
+
+            // create the socket worker
+            var socketWorker = Task.Run(() => DeribitSocketWorker(this.options, cancellationToken), cancellationToken);
+
+            // send messages to connect, auth and subscribe
+            EnqueueOutgoingMessage(GetTestRequestMessage(), cancellationToken);
+
+            // wait until incoming messages become available
+            while (await incomingQueue.Reader.WaitToReadAsync(cancellationToken))
             {
-                try
+                // take the next available incoming message
+                while (incomingQueue.Reader.TryRead(out string? message))
                 {
-                    ParseMessage(message);
-                }
-                catch (Exception ex)
-                {
-                    this.logger?.LogError(ex, "Failed processing received message: {message}", message);
+                    try
+                    {
+                        ParseMessage(message);
+                    }
+                    catch (Exception ex)
+                    {
+                        this.logger?.LogError(ex, "Failed processing received message: {message}", message);
+                    }
                 }
             }
-        }
 
-        await socketWorker;
+            await socketWorker;
+        }
+        catch (OperationCanceledException)
+        {
+            this.logger?.LogInformation("Cancelled.");
+        }
+        catch (Exception ex)
+        {
+            this.logger?.LogError(ex, "Failed Initializing or processing incoming messages.");
+            throw;
+        }
+        finally
+        {
+            this.IsRunning = false;
+        }
     }
 
     private void RefreshTokenTimerTicked(object? state)
@@ -96,40 +120,75 @@ internal partial class DeribitApiClient : IDeribitApiClient
 
     async Task DeribitSocketWorker(DeribitOptions options, CancellationToken token)
     {
-        // setup new socket worker
-        using var ws = new WebsocketClient(new Uri(options.WebSocketUrl), WsFactory);
-        ws.MessageReceived.Subscribe(info =>
-        {
-            if (!string.IsNullOrWhiteSpace(info.Text))
-                incomingQueue.Writer.TryWrite(info.Text);
-        });
-        ws.ReconnectionHappened.Subscribe(info =>
-        {
-            // re-authenticate on reconnect
-            EnqueueConnectionInitMessagesToSend(options, token);
-        });
+        using WebsocketClient ws = CreateSocketClient(options, token);
 
         // start receiving messages
         await ws.Start();
 
-        // wait until outgoing messages become available
-        while (await outgoingQueue.Reader.WaitToReadAsync(token))
+        try
         {
-            // take the next available incoming message
-            while (outgoingQueue.Reader.TryRead(out string? message))
+            // wait until outgoing messages become available
+            while (await outgoingQueue.Reader.WaitToReadAsync(token))
             {
-                // if we have to stop
-                if (message == EndMessage)
+                // take the next available incoming message
+                while (outgoingQueue.Reader.TryRead(out string? message))
                 {
-                    // close the WebSocket
-                    await ws.Stop(WebSocketCloseStatus.NormalClosure, message);
-                    break;
-                }
+                    // if we have to stop
+                    if (message == EndMessage)
+                    {
+                        // close the WebSocket
+                        await ws.Stop(WebSocketCloseStatus.NormalClosure, message);
+                        break;
+                    }
 
-                // send the message through the WebSocket
-                await ws.SendInstant(message);
+                    // send the message through the WebSocket
+                    await ws.SendInstant(message);
+                }
             }
         }
+        catch (OperationCanceledException)
+        {
+            this.logger?.LogInformation("Cancelled.");
+        }
+        catch (Exception ex)
+        {
+            this.logger?.LogError(ex, "Failed Initializing or processing incoming messages.");
+            
+            incomingQueue.Writer.Complete(ex);
+            outgoingQueue.Writer.Complete(ex);
+        }
+    }
+
+    private WebsocketClient CreateSocketClient(DeribitOptions options, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        WebsocketClient? ws = null;
+        try
+        {
+            // setup new socket worker
+            ws = new WebsocketClient(new Uri(options.WebSocketUrl), WsFactory);
+            ws.MessageReceived.Subscribe(info =>
+            {
+                if (!string.IsNullOrWhiteSpace(info.Text))
+                    incomingQueue.Writer.TryWrite(info.Text);
+            });
+            ws.ReconnectionHappened.Subscribe(info =>
+            {
+                // re-authenticate on reconnect
+                EnqueueConnectionInitMessagesToSend(options, token);
+            });
+        }
+        catch (Exception ex)
+        {
+            this.logger?.LogError(ex, "Failed initializing new socket client.");
+
+            ws?.Dispose();
+
+            throw;
+        }
+
+        return ws;
     }
 
     private void EnqueueConnectionInitMessagesToSend(DeribitOptions options, CancellationToken token)

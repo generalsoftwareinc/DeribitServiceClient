@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Deribit.ApiClient.Serialization
 {
-    internal static class MessageStringExtensions
+    internal static class JsonStringMessageParser
     {
         private static readonly JsonSerializerOptions jsonOptions = new()
         {
@@ -17,9 +17,7 @@ namespace Deribit.ApiClient.Serialization
             data = default;
 
             if (string.IsNullOrEmpty(message))
-            {
                 return false;
-            }
 
             try
             {

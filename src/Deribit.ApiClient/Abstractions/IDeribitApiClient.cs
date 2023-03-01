@@ -8,6 +8,11 @@ public interface IDeribitApiClient
     long HeartBeatMessagesCount { get; }
     long TokenRefreshMessagesCount { get; }
 
+    /// <summary>
+    /// Gets a boolean indicating whether the API client is running, or not.
+    /// </summary>
+    bool IsRunning { get; }
+
     Task RunAsync(CancellationToken cancellationToken);
     Task DisconnectAsync(CancellationToken cancellationToken);
 
