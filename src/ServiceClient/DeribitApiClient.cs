@@ -70,7 +70,6 @@ internal partial class DeribitApiClient : IDeribitApiClient
 
         // send messages to connect, auth and subscribe
         EnqueueOutgoingMessage(GetTestRequestMessage(), cancellationToken);
-        EnqueueConnectionInitMessagesToSend(this.options, cancellationToken);
 
         // wait until incoming messages become available
         while (await incomingQueue.Reader.WaitToReadAsync(cancellationToken))
@@ -113,11 +112,8 @@ internal partial class DeribitApiClient : IDeribitApiClient
         });
         ws.ReconnectionHappened.Subscribe(info =>
         {
-            if (info.Type != ReconnectionType.Initial)
-            {
-                // re-authenticate on reconnect
-                EnqueueConnectionInitMessagesToSend(options, token);
-            }
+            // re-authenticate on reconnect
+            EnqueueConnectionInitMessagesToSend(options, token);
         });
 
         // start receiving messages
