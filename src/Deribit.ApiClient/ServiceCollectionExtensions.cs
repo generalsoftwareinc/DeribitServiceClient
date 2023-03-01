@@ -7,12 +7,14 @@ namespace Deribit.ApiClient;
 
 public static class ServiceCollectionExtensions
 {
-    public static void AddDeribitApiClient(this IServiceCollection services, IConfiguration configuration, string deribitOptionsConfigSectionName = nameof(DeribitOptions))
+    public static IServiceCollection AddDeribitApiClient(this IServiceCollection services, IConfiguration configuration, string deribitOptionsConfigSectionName = nameof(DeribitOptions))
     {
         services.AddTransient<IDeribitApiClient, DeribitApiClient>();
         services.AddOptions<DeribitOptions>()
             .Bind(configuration.GetSection(deribitOptionsConfigSectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
+
+        return services;
     }
 }

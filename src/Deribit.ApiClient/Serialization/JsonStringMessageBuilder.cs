@@ -4,9 +4,9 @@ using Deribit.ApiClient.DTOs;
 
 namespace Deribit.ApiClient.Serialization
 {
-    internal class JsonStringMessageBuilder
+    internal static class JsonStringMessageBuilder
     {
-        static readonly JsonSerializerOptions jsonOptions = new()
+        private static readonly JsonSerializerOptions jsonOptions = new()
         {
             PropertyNamingPolicy = new LowerCaseJsonNamingPolicy(),
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
