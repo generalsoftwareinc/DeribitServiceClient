@@ -157,6 +157,8 @@ public partial class DeribitApiClient : IDeribitApiClient, IAsyncDisposable, IDi
     public void Reset()
     {
         ThrowIfDisposingOrDisposed();
+        if (this.IsRunning)
+            throw new InvalidOperationException("Already running.");
 
         nextId = 0;
         lastBook = null;

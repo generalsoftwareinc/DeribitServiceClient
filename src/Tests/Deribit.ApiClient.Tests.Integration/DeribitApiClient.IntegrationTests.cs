@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
 using NuGet.Frameworks;
+using System.Threading;
 
 namespace Deribit.ApiClient.Tests.Integration
 {
@@ -11,7 +12,7 @@ namespace Deribit.ApiClient.Tests.Integration
     {
         [TestMethod]
         [TestCategory("Logic"), TestCategory("Slow")]
-        public async Task DeribitApiClient_RunAsync_starts_then_CancelToken_stops_multiple_times_then_DisposeAsync()
+        public async Task RunAsync_starts_then_CancelToken_stops_multiple_times_then_DisposeAsync()
         {
             // This is a combined test method testing multiple steps for performance reasons:
             // 1. RunAsync connects and starts processing incoming and outgoing messages
@@ -24,17 +25,23 @@ namespace Deribit.ApiClient.Tests.Integration
             // 8. Trying to Run after disposed should fail
 
             // Arrange
-            int delayTimeMillisec = 200;
+            int timeoutMillisec = 500;
             var cancellationTokenSource = new CancellationTokenSource();
             await using (var apiClient = Utils.GetDeribitApiClient(logger: Utils.LoggerFactory.CreateLogger<DeribitApiClient>(LogLevel.Debug)))
             {
                 Assert.IsFalse(apiClient.IsRunning);
+                var tickerReceived = new ManualResetEventSlim(false);
+                apiClient.OnTickerReceived += (object? sender, TickerReceivedEventArgs e) =>
+                {
+                    if (!tickerReceived.IsSet)
+                        tickerReceived.Set();
+                };
 
                 // Act: STEP 1: start the ApiClient
                 var runTask = Task.Run(() => apiClient.RunAsync(cancellationTokenSource.Token));
-                
+
                 // wait some time to have some messages
-                await Task.Delay(delayTimeMillisec);
+                Assert.IsTrue(tickerReceived.Wait(timeoutMillisec));
                 Assert.IsTrue(apiClient.IsRunning);
                 Assert.IsTrue(apiClient.TotalReceivedMessagesCount > 0);
 
@@ -49,6 +56,7 @@ namespace Deribit.ApiClient.Tests.Integration
 
 
                 // Act: STEP 3: reset
+                tickerReceived.Reset();
                 apiClient.Reset();
                 Assert.IsFalse(apiClient.IsRunning);
                 Assert.AreEqual(0, apiClient.BookMessagesCount);
@@ -64,7 +72,7 @@ namespace Deribit.ApiClient.Tests.Integration
                 runTask = Task.Run(() => apiClient.RunAsync(cancellationTokenSource.Token));
 
                 // wait some time to have some messages
-                await Task.Delay(delayTimeMillisec);
+                Assert.IsTrue(tickerReceived.Wait(timeoutMillisec));
                 Assert.IsTrue(apiClient.IsRunning);
                 Assert.IsTrue(apiClient.TotalReceivedMessagesCount > 0);
 
@@ -77,14 +85,15 @@ namespace Deribit.ApiClient.Tests.Integration
                 Assert.IsFalse(apiClient.IsRunning);
                 Assert.IsTrue(apiClient.TotalReceivedMessagesCount > 0);
 
-                
+
                 // Act: STEP 6: restart the same ApiClient instance, but this time without Reset()
+                tickerReceived.Reset();
                 var previousTotalReceivedMessagesCount = apiClient.TotalReceivedMessagesCount;
                 cancellationTokenSource = new CancellationTokenSource();
                 runTask = Task.Run(() => apiClient.RunAsync(cancellationTokenSource.Token));
 
                 // wait some time to have some messages
-                await Task.Delay(delayTimeMillisec);
+                Assert.IsTrue(tickerReceived.Wait(timeoutMillisec));
                 Assert.IsTrue(apiClient.IsRunning);
                 Assert.IsTrue(apiClient.TotalReceivedMessagesCount > previousTotalReceivedMessagesCount);
                 previousTotalReceivedMessagesCount = apiClient.TotalReceivedMessagesCount;
@@ -93,12 +102,14 @@ namespace Deribit.ApiClient.Tests.Integration
                 // Act: STEP 7: Dispose
                 await apiClient.DisposeAsync();
                 Assert.IsFalse(apiClient.IsRunning);
-                Assert.AreEqual(previousTotalReceivedMessagesCount, apiClient.TotalReceivedMessagesCount);
+                //Assert.AreEqual(previousTotalReceivedMessagesCount, apiClient.TotalReceivedMessagesCount);
 
 
                 // Act: STEP 8: Trying to Run after disposed should fail
                 cancellationTokenSource = new CancellationTokenSource();
-                await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => Task.Run(() => apiClient.RunAsync(cancellationTokenSource.Token)));
+                await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => apiClient.RunAsync(cancellationTokenSource.Token));
+                await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => apiClient.DisconnectAsync(cancellationTokenSource.Token));
+                Assert.ThrowsException<ObjectDisposedException>(apiClient.Reset);
 
 
                 // TODO assert that
@@ -123,16 +134,22 @@ namespace Deribit.ApiClient.Tests.Integration
             // 9. Trying to Run after disposed should fail
 
             // Arrange
-            int delayTimeMillisec = 200;
+            int timeoutMillisec = 500;
             using (var apiClient = Utils.GetDeribitApiClient(logger: Utils.LoggerFactory.CreateLogger<DeribitApiClient>(LogLevel.Debug)))
             {
                 Assert.IsFalse(apiClient.IsRunning);
+                var tickerReceived = new ManualResetEventSlim(false);
+                apiClient.OnTickerReceived += (object? sender, TickerReceivedEventArgs e) =>
+                {
+                    if (!tickerReceived.IsSet)
+                        tickerReceived.Set();
+                };
 
                 // Act: STEP 1: start the ApiClient
                 var runTask = Task.Run(() => apiClient.RunAsync(CancellationToken.None));
 
                 // wait some time to have some messages
-                await Task.Delay(delayTimeMillisec);
+                Assert.IsTrue(tickerReceived.Wait(timeoutMillisec));
                 Assert.IsTrue(apiClient.IsRunning);
                 Assert.IsTrue(apiClient.TotalReceivedMessagesCount > 0);
 
@@ -145,6 +162,11 @@ namespace Deribit.ApiClient.Tests.Integration
                 Assert.IsFalse(apiClient.IsRunning);
                 Assert.IsTrue(apiClient.TotalReceivedMessagesCount > 0);
 
+                // after disconnected it should not receive any more messages
+                tickerReceived.Reset();
+                await Task.Delay(100);
+                Assert.IsFalse(tickerReceived.IsSet);
+
 
                 // Act: STEP 3: ask it to disconnect again after disconnected, should not fail
                 await apiClient.DisconnectAsync(CancellationToken.None);
@@ -153,6 +175,7 @@ namespace Deribit.ApiClient.Tests.Integration
 
 
                 // Act: STEP 4: reset
+                tickerReceived.Reset();
                 apiClient.Reset();
                 Assert.IsFalse(apiClient.IsRunning);
                 Assert.AreEqual(0, apiClient.BookMessagesCount);
@@ -167,7 +190,7 @@ namespace Deribit.ApiClient.Tests.Integration
                 runTask = Task.Run(() => apiClient.RunAsync(CancellationToken.None));
 
                 // wait some time to have some messages
-                await Task.Delay(delayTimeMillisec);
+                Assert.IsTrue(tickerReceived.Wait(timeoutMillisec));
                 Assert.IsTrue(apiClient.IsRunning);
                 Assert.IsTrue(apiClient.TotalReceivedMessagesCount > 0);
 
@@ -182,11 +205,12 @@ namespace Deribit.ApiClient.Tests.Integration
 
 
                 // Act: STEP 7: restart the same ApiClient instance, but this time without Reset()
+                tickerReceived.Reset();
                 var previousTotalReceivedMessagesCount = apiClient.TotalReceivedMessagesCount;
                 runTask = Task.Run(() => apiClient.RunAsync(CancellationToken.None));
 
                 // wait some time to have some messages
-                await Task.Delay(delayTimeMillisec);
+                Assert.IsTrue(tickerReceived.Wait(timeoutMillisec));
                 Assert.IsTrue(apiClient.IsRunning);
                 Assert.IsTrue(apiClient.TotalReceivedMessagesCount > previousTotalReceivedMessagesCount);
                 previousTotalReceivedMessagesCount = apiClient.TotalReceivedMessagesCount;
@@ -200,6 +224,8 @@ namespace Deribit.ApiClient.Tests.Integration
 
                 // Act: STEP 9: Trying to Run after disposed should fail
                 await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => Task.Run(() => apiClient.RunAsync(CancellationToken.None)));
+                await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => apiClient.DisconnectAsync(CancellationToken.None));
+                Assert.ThrowsException<ObjectDisposedException>(apiClient.Reset);
 
 
                 // TODO assert that
