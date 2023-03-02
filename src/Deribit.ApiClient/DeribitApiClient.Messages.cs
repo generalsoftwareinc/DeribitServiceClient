@@ -7,13 +7,14 @@ using Deribit.ApiClient.Serialization;
 
 namespace Deribit.ApiClient;
 
-internal partial class DeribitApiClient
+partial class DeribitApiClient
 {
     private static readonly object EmptyObject = new();
 
-    protected string BookChannel => $"book.{options.InstrumentName}.{options.BookInterval}";
-    protected string TickerChannel => $"ticker.{options.InstrumentName}.{options.TickerInterval}";
+    protected string BookChannelName => $"book.{options.InstrumentName}.{options.BookInterval}";
+    protected string TickerChannelName => $"ticker.{options.InstrumentName}.{options.TickerInterval}";
 
+    public long TotalReceivedMessagesCount { get; private set; }
     public long TickerMessagesCount { get; private set; }
     public long BookMessagesCount { get; private set; }
     public long SubscriptionMessagesCount { get; private set; }
@@ -53,11 +54,11 @@ internal partial class DeribitApiClient
 
     private void ParseMessage(string message)
     {
-        if (string.IsNullOrEmpty(message))
+        if (isDisposingOrDisposed || string.IsNullOrEmpty(message))
             return;
 
-        var isBookMessage = message.Contains(BookChannel, StringComparison.InvariantCulture);
-        var isTikerMessage = !isBookMessage && message.Contains(TickerChannel, StringComparison.InvariantCulture);
+        var isBookMessage = message.Contains(BookChannelName, StringComparison.InvariantCulture);
+        var isTikerMessage = !isBookMessage && message.Contains(TickerChannelName, StringComparison.InvariantCulture);
 
         // if it is a subscription response
         if (!isBookMessage && !isTikerMessage && message.Contains("\"result\":[\"") && message.TryDeserialize<ActionResponse<string[]>>(out var subResponse))
@@ -96,7 +97,7 @@ internal partial class DeribitApiClient
 
         if (channels == null)
             throw new NotSupportedException("Can't subscribe to the channels");
-        var _channels = new[] { BookChannel, TickerChannel };
+        var _channels = new[] { BookChannelName, TickerChannelName };
         var notSubscribedChannels = _channels
             .Except(channels, StringComparer.InvariantCulture)
             .ToArray();
@@ -109,7 +110,7 @@ internal partial class DeribitApiClient
     }
     private void HandleAuthResponse(string message)
     {
-        refreshTokenTimer?.Dispose();
+        DisposeRefreshTokenTimer();
 
         // if we could not parse the credentials
         if (!message.TryDeserialize<ActionResponse<AuthResult>>(out var credentials) || credentials?.Result == null)
@@ -126,7 +127,6 @@ internal partial class DeribitApiClient
         //TimeSpan expiration = TimeSpan.FromSeconds(Credentials.ExpiresIn);
         //TimeSpan runAt = expiration.Subtract(TimeSpan.FromMinutes(5));
 
-        refreshTokenTimer = new Timer(RefreshTokenTimerTicked);
-        refreshTokenTimer.Change(runAtSec, runAtSec);
+        StartNewRefreshTokenTimer(runAtSec);
     }
 }

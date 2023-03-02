@@ -7,14 +7,15 @@ using Microsoft.Extensions.Options;
 namespace Deribit.ApiClient.Tests.Unit
 {
     [TestClass]
-    public class ServiceCollectionExtensionsUnitTests
+    public class ServiceCollectionExtensions_UnitTests
     {
         [TestMethod]
+        [TestCategory("Logic")]
         public void AddDeribitApiClient_CanResolveDeribitOptions_FromDefaultConfigSection()
         {
             // Arrange
-            var options = GetValidDeribitOptions();
-            var myConfiguration = BuildConfigurationFrom(options);
+            var options = Utils.GetValidDeribitOptions();
+            var myConfiguration = Utils.BuildMemoryConfigurationDataFrom(options);
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(myConfiguration!)
                 .Build();
@@ -32,17 +33,18 @@ namespace Deribit.ApiClient.Tests.Unit
         }
 
         [TestMethod]
+        [TestCategory("Logic")]
         public void AddDeribitApiClient_CanResolveDeribitOptions_FromCustomConfigSection()
         {
             // Arrange
             string customSectionName = "customSectionName";
-            var options = GetValidDeribitOptions() with
+            var options = Utils.GetValidDeribitOptions() with
             {
                 HeartBeatInterval = 40,
                 ClientId = customSectionName,
                 ClientSecret = customSectionName
             };
-            var myConfiguration = BuildConfigurationFrom(options, customSectionName);
+            var myConfiguration = Utils.BuildMemoryConfigurationDataFrom(options, customSectionName);
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(myConfiguration!)
                 .Build();
@@ -60,11 +62,12 @@ namespace Deribit.ApiClient.Tests.Unit
         }
 
         [TestMethod]
+        [TestCategory("Logic")]
         public void AddDeribitApiClient_CanResolveDeribitApiClient()
         {
             // Arrange
-            var options = GetValidDeribitOptions();
-            var myConfiguration = BuildConfigurationFrom(options);
+            var options = Utils.GetValidDeribitOptions();
+            var myConfiguration = Utils.BuildMemoryConfigurationDataFrom(options);
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(myConfiguration!)
                 .Build();
@@ -80,34 +83,6 @@ namespace Deribit.ApiClient.Tests.Unit
             // Assert
             Assert.IsNotNull(apiClient);
             Assert.IsFalse(apiClient.IsRunning);
-        }
-
-        private static DeribitOptions GetValidDeribitOptions()
-        {
-            return new DeribitOptions()
-            {
-                BookInterval = DeribitOptions.ValidSubscriptionIntervalValues[0],
-                ClientId = "unit.test",
-                ClientSecret = "123",
-                HeartBeatInterval = 30,
-                InstrumentName = "BTC-PERPETUAL",
-                TickerInterval = DeribitOptions.ValidSubscriptionIntervalValues[0],
-                WebSocketUrl = "wss://test.deribit.com/ws/api/v2",
-            };
-        }
-
-        private static Dictionary<string, string> BuildConfigurationFrom(DeribitOptions options, string configSectionName = "DeribitOptions")
-        {
-            return new Dictionary<string, string>
-                {
-                    { $"{configSectionName}:{nameof(options.ClientId)}", options.ClientId },
-                    { $"{configSectionName}:{nameof(options.ClientSecret)}", options.ClientSecret },
-                    { $"{configSectionName}:{nameof(options.WebSocketUrl)}", options.WebSocketUrl },
-                    { $"{configSectionName}:{nameof(options.InstrumentName)}", options.InstrumentName },
-                    { $"{configSectionName}:{nameof(options.TickerInterval)}", options.TickerInterval },
-                    { $"{configSectionName}:{nameof(options.BookInterval)}", options.BookInterval },
-                    { $"{configSectionName}:{nameof(options.HeartBeatInterval)}", options.HeartBeatInterval.ToString() },
-                };
         }
     }
 }
