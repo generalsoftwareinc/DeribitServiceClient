@@ -361,11 +361,11 @@ public partial class DeribitApiClient : IDeribitApiClient, IAsyncDisposable, IDi
     public async ValueTask DisposeAsync()
     {
         if (isDisposingOrDisposed)
-            return;
-        this.isDisposingOrDisposed = true;
+            return;       
 
         // https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/implementing-disposeasync
         await DisposeAsyncCore().ConfigureAwait(false);
+        this.isDisposingOrDisposed = true;
         Dispose(disposing: false);
         GC.SuppressFinalize(this);
     }
@@ -392,16 +392,12 @@ public partial class DeribitApiClient : IDeribitApiClient, IAsyncDisposable, IDi
 
     protected virtual async ValueTask DisposeAsyncCore()
     {
-        this.logger?.LogDebug("Disposing");
-        // TODO ensure this informs the server, closes the websocket and completes all internal queues and ensures no leftover internal task is running !!!
+        this.logger?.LogDebug("Disposing");        
 
-        //if (this.IsRunning)
-        //{
-        //    await this.DisconnectAsync(CancellationToken.None);
-
-        //    if (this.runningTask != null)
-        //        await runningTask;
-        //}
+        if (this.IsRunning)
+        {
+            await this.DisconnectAsync(CancellationToken.None);            
+        }
 
         var timer = this.refreshTokenTimer;
         this.refreshTokenTimer = null;
